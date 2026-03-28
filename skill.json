@@ -1,0 +1,94 @@
+{
+  "$schema": "https://skill.json.org/schema/1.0.0/skill.schema.json",
+  "name": "ai-readiness-framework",
+  "version": "0.1.0",
+  "description": "Skills for implementing the AI Readiness Framework in any project — audit, scaffold, document, and enforce the conventions that make codebases safe for AI agent work.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/velvet-tiger/ai-readiness-framework.git"
+  },
+  "keywords": ["ai-readiness", "agents", "claude", "conventions", "audit", "scaffold"],
+  "skills": [
+    {
+      "name": "ai-readiness-audit",
+      "path": "./skills/ai-readiness-audit",
+      "description": "Audit a project against the AI Readiness Framework and produce a prioritised gap report by tier. Use when assessing a codebase for agent readiness, onboarding a project for AI agent work, checking which tier a project currently satisfies, or determining what must be fixed before running agents safely.",
+      "category": "development",
+      "tags": ["audit", "readiness", "agents", "assessment", "tiers"],
+      "integrity": "sha256-kwPaGsG+TmDwqwGF7oiIIdC68YxnnSA2GD2XXylXtxU="
+    },
+    {
+      "name": "ai-readiness-scaffold",
+      "path": "./skills/ai-readiness-scaffold",
+      "description": "Generate the required files for AI agent readiness in an existing project. Use when a project is missing AGENTS.md, RULES.md, ARCHITECTURE.md, or other required framework files, when onboarding a project for agent work, or when an ai-readiness-audit has identified missing artefacts.",
+      "category": "development",
+      "tags": ["scaffold", "readiness", "agents", "setup", "agents-md", "rules-md", "architecture-md"],
+      "integrity": "sha256-s+IBQAkDdMz/sR5i9PvfrAdL8Z/J2nAl61Y44v+2IPw="
+    },
+    {
+      "name": "agents-md",
+      "path": "./skills/agents-md",
+      "description": "Create or update AGENTS.md (or CLAUDE.md) for a project following the AI Readiness Framework. Use when a project is missing its agent orientation file, when AGENTS.md is incomplete or outdated, when adding new services or packages that need coverage, or when an audit has flagged gaps in agent orientation.",
+      "category": "development",
+      "tags": ["agents-md", "claude-md", "documentation", "orientation", "conventions"],
+      "integrity": "sha256-JY+3Q9OMSdWQRpX/QusIDsHXr/EceH/ekoocyTCAubA="
+    },
+    {
+      "name": "rules-md",
+      "path": "./skills/rules-md",
+      "description": "Create or update RULES.md for a project following the AI Readiness Framework. Use when a project is missing its coding rules file, when RULES.md exists but is too generic to produce consistent agent output, when the codebase has adopted new patterns that should be codified, or when an audit has flagged insufficient or contradictory rules.",
+      "category": "development",
+      "tags": ["rules-md", "conventions", "coding-standards", "documentation"],
+      "integrity": "sha256-di9Sjg8ztlQmtebRUhgXxxHMrP65gAbb1tSEZ80eoHc="
+    },
+    {
+      "name": "architecture-md",
+      "path": "./skills/architecture-md",
+      "description": "Create or update ARCHITECTURE.md for a project following the AI Readiness Framework. Use when a project is missing its architecture overview, when the existing ARCHITECTURE.md is outdated or incomplete, when a new service or significant component has been added, or when an audit has flagged missing structural documentation.",
+      "category": "development",
+      "tags": ["architecture-md", "documentation", "mermaid", "diagrams", "services"],
+      "integrity": "sha256-FXEjVlTiiGJKGNxmjQeTRKowhzQUYGGAKZvdosNcSDQ="
+    },
+    {
+      "name": "dead-code-cleanup",
+      "path": "./skills/dead-code-cleanup",
+      "description": "Identify and remove dead code from a project following the AI Readiness Framework. Use when preparing a codebase for agent work, when static analysis has flagged unused code, when commented-out code blocks exist, or when permanently resolved feature flags are cluttering the codebase.",
+      "category": "development",
+      "tags": ["dead-code", "cleanup", "refactoring", "feature-flags", "static-analysis"],
+      "integrity": "sha256-7OI9MMI4AxrJzeFxxX+Q+JTg2p2nIR5IC5mUv12Evfc="
+    },
+    {
+      "name": "error-handling-audit",
+      "path": "./skills/error-handling-audit",
+      "description": "Audit and remediate error handling inconsistencies in a project following the AI Readiness Framework. Use when preparing a codebase for agent work, when error handling is inconsistent or uses multiple patterns, when silent failures or empty catch blocks exist, or when agents are producing error handling code that does not match the rest of the codebase.",
+      "category": "development",
+      "tags": ["error-handling", "audit", "exceptions", "silent-failures", "refactoring"],
+      "integrity": "sha256-ikkICT6OqHPll/FVqjQDtjo5TdKrQD3DJK9Ndn4An9A="
+    },
+    {
+      "name": "boundary-audit",
+      "path": "./skills/boundary-audit",
+      "description": "Audit and remediate architectural boundary violations in a project following the AI Readiness Framework. Use when preparing a codebase for agent work, when business logic is leaking into HTTP handlers, when database queries appear in the wrong layer, when services are reaching into each other's internals, or when agents are producing code that ignores layer boundaries.",
+      "category": "development",
+      "tags": ["boundaries", "architecture", "layers", "refactoring", "mvc", "clean-architecture"],
+      "integrity": "sha256-dfsehrK7wGv8sl6prA5nRN2Q/pYoBERZEckoJJwRPCM="
+    },
+    {
+      "name": "escalation-check",
+      "path": "./skills/escalation-check",
+      "description": "Check whether a proposed or completed change triggers any escape hatch conditions defined in the project's AGENTS.md or RULES.md. Use before committing a change, before raising a pull request, when unsure whether a change is within scope, or as a pre-commit gate in agent workflows.",
+      "category": "development",
+      "tags": ["escalation", "escape-hatches", "pre-commit", "gate", "safety"],
+      "integrity": "sha256-6YDhtenjMRwqGciIySS/mnfNIHsZF6rzVRRs965oCFM="
+    },
+    {
+      "name": "convention-check",
+      "path": "./skills/convention-check",
+      "description": "Verify that new or modified code follows the conventions established in the project's RULES.md and AGENTS.md. Use before committing a change, when reviewing agent-generated code, when adding new code to an existing codebase, or as a consistency gate before raising a pull request.",
+      "category": "development",
+      "tags": ["conventions", "consistency", "pre-commit", "gate", "code-review"],
+      "integrity": "sha256-CCWDoMX+KMdUoUiXl5OqNaoQLG5TRjNemD+8cQlcHpk="
+    }
+  ]
+}
