@@ -2,6 +2,7 @@
 
 by Velvet Tiger | [https://velvettiger.com.au](https://velvettiger.com.au)
 
+[![Install in Automatic](https://tryautomatic.app/badges/install.svg)](https://tryautomatic.app/install?repo=velvet-tiger/ai-readiness-framework)
 
 A specification and skill set for making codebases safe for AI agent work.
 
