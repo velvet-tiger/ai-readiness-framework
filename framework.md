@@ -1,5 +1,5 @@
 # AI Readiness Framework
-**Version:** 0.1
+**Version:** 0.2
 **Status:** Draft
 
 ---
@@ -116,6 +116,8 @@ Agents use names to infer intent. Vague names give agents nothing to work with a
 |---|---|---|---|---|
 | 1.3a | T1 | Classes, methods, and variables communicate intent without tracing | Rename anything that requires reading the body to understand what it does; prefer long explicit names over short ambiguous ones | `buildCheckoutPayload()` not `handle()`; `$pendingOrderSync` not `$data` |
 | 1.3b | T1 | No overloaded names | A name should mean one thing across the codebase; if the same word is used for different concepts in different contexts, rename one of them | `Order` means the customer order object everywhere - not sometimes a checkout session and sometimes a database row depending on the namespace |
+| 1.3c | T1 | No name collisions across paths | Walk the repo grouping files by basename and exported classes or functions by simple name; rename to disambiguate, or document an exception where the collision is load-bearing (e.g. parallel adapters implementing the same port) | Two `helpers.ts` files in unrelated modules renamed to `format-helpers.ts` and `auth-helpers.ts`; two classes named `Service` renamed to `OrderService` and `PaymentService` |
+| 1.3d | T1 | No empty generic names in new code | Names like `Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data` used unqualified carry no intent; require a domain prefix or suffix in `RULES.md` and check it on every change | `OrderService` not `Service`; `CurrencyFormatter` not `Helper`; `WebhookDispatcher` not `Manager` |
 
 ### 1.4 Tests
 
@@ -145,6 +147,7 @@ If business logic leaks into controllers, or database queries appear in views, o
 |---|---|---|---|---|
 | 1.6a | T2 | Business logic does not leak across layers | Controllers handle HTTP concerns only; services handle business logic; repositories or query objects handle data access | A controller that calls `$order->save()` directly should be refactored to delegate to a service; agents will otherwise write new controllers that do the same |
 | 1.6b | T2 | Cross-service communication goes through defined interfaces | No direct database sharing between services; no reaching into another service's internals; all cross-boundary calls go through a declared interface or contract | A billing service communicating with a notifications service via an internal HTTP API or queue, not by writing directly to the notifications database |
+| 1.6c | T2 | Declared architectural pattern is enforced | The pattern named in `ARCHITECTURE.md` (see 2.1g) has its dependency-direction rules validated by a tool or test; the rule cannot be a comment that the agent ignores | `deptrac` for PHP, `dependency-cruiser` for JS, `archunit` for Java, or an import-graph test in Rust; lint error message names the rule that was broken |
 
 ### 1.7 Error Handling
 
@@ -193,6 +196,17 @@ Agents that lack operational context will write code that is locally correct but
 | 1.11b | T2 | External service dependencies documented | Third-party APIs, managed services, and external integrations documented with their authentication approach, rate limits, known quirks, and sandbox/production distinction | "The shipping API requires an API key header in production, has a sandbox environment, and enforces a rate limit of 10 requests per second" |
 | 1.11c | T2 | Observability infrastructure documented | Tracing, metrics, and structured logging tooling documented in `AGENTS.md` with guidance on when to instrument new code | "All new service methods should emit a trace span; use the project's tracing helper in Rust or the `Tracer` service in PHP" |
 
+### 1.12 File Length
+
+Agents read files into a working window before they can act on them. A file that exceeds that window forces the agent to summarise or chunk, both of which lose context and break edit precision. The effective working window degrades well before the model's hard context limit. Predictable file sizes are an agent-readiness concern, not a style preference.
+
+This applies to both source files and to the orientation documents (`AGENTS.md`, `RULES.md`, `ARCHITECTURE.md`); the latter are covered by 2.2f.
+
+| ID | Tier | Requirement | How to satisfy | Example |
+|---|---|---|---|---|
+| 1.12a | T1 | Declared per-language source-file size budget | `RULES.md` declares a soft line budget per file category; files exceeding the budget are split or justified inline with a comment naming the reason | "500 lines general source; 300 lines for UI components; 800 lines for generated migrations or fixtures"; a 1200-line controller is split into per-concern controllers or refactored to delegate |
+| 1.12b | T2 | Hard ceiling on source-file size | A pre-commit or CI check fails any source file above the harness-readable ceiling (suggested 1500 lines, configurable in `RULES.md`); generated files, lockfiles, and snapshots may be excluded with an explicit allowlist | A check that runs `find . -name '*.ts' | xargs wc -l | awk '$1 > 1500'` and fails CI if anything is returned; allowlisted paths declared in `.file-length-ignore` or the CI config |
+
 ---
 
 ## Part 2: Project Structure
@@ -207,6 +221,16 @@ Agents that lack operational context will write code that is locally correct but
 | 2.1d | T2 | Machine-readable project manifest | `project.json` or `manifest.toml` at the root declaring stack, entry points, test commands, lint commands, and inter-service dependencies | `{ "stack": ["typescript", "php"], "test": "pnpm test && php artisan test", "lint": "pnpm lint && ./vendor/bin/pint" }` |
 | 2.1e | T2 | Canonical data and API contracts | A committed OpenAPI spec, schema file, or shared type layer that is authoritative; manifest and `AGENTS.md` both reference it explicitly | OpenAPI spec at `docs/api/openapi.yaml`; `schema.sql` committed and kept current with migrations |
 | 2.1f | T3 | Documentation as system of record | `docs/` is the authoritative knowledge base for everything that influences agent behaviour; CI validates structure and cross-links; a recurring task scans for drift and opens fix-up PRs; knowledge that exists only in chat, external tools, or people's heads is invisible to agents and must be encoded into the repository | A background agent that checks documented behaviours against actual code weekly and opens correction PRs for any content it finds to be stale or inaccurate |
+| 2.1g | T1 | Named architectural pattern | `ARCHITECTURE.md` names the pattern in use from a recommended shortlist (or declares "project-specific" with rationale), lists the layers or ports, and states the dependency-direction rule that 1.6c will enforce; pattern choice should be drawn from the ranked shortlist below | "Ports-and-adapters. Domain core in `src/domain/`, primary adapters in `src/api/`, secondary adapters in `src/infra/`. Domain has no imports from `api/` or `infra/`." |
+
+**Recommended pattern shortlist**, in approximate order of agent-friendliness (strongest boundaries first). Projects pick by fit, not by ranking:
+
+1. **Hexagonal / ports-and-adapters** — strongest boundary enforcement. Domain core has no infrastructure imports; adapters depend on domain. Preferred for service code with non-trivial business logic.
+2. **Clean architecture** — formalised hexagonal with explicit use-case layer. Good for larger codebases where the domain has many entry points.
+3. **Layered (n-tier)** — explicit top-to-bottom direction (controller → service → repository). Simplest with strong direction; default for most service code.
+4. **Vertical slice** — feature-isolated modules, each containing its own thin layers. Good for monoliths with feature teams; reduces cross-feature blast radius.
+5. **MVC** — acceptable for UI-driven web apps where the controller-view boundary is the primary concern.
+6. **Project-specific** — allowed but must be diagrammed and have an explicit dependency-direction rule, otherwise it is indistinguishable from "no pattern".
 
 ### 2.2 Act
 
@@ -217,6 +241,7 @@ Agents that lack operational context will write code that is locally correct but
 | 2.2c | T3 | `AGENTS.md` as index, not encyclopedia | `AGENTS.md` is kept short (around 100 lines) and acts as a table of contents pointing into `docs/`; all convention detail, operational context, and external dependency information lives in the structured `docs/` tree; a monolithic `AGENTS.md` crowds out task context, makes everything equally important, and rots because it cannot be mechanically validated | `AGENTS.md` contains project purpose, stack summary, directory layout, escape hatch conditions, and links to deeper documents — nothing else |
 | 2.2d | T3 | Sub-agent library | `agents/` or `.claude/agents/` directory with one file per sub-agent, each with a single well-scoped responsibility | `migration-writer.md`, `test-generator.md`, `openapi-updater.md` |
 | 2.2e | T3 | Skill set | `skills/` directory with runnable or instructable skill files covering common tasks; centralised across projects where possible | Release skill that bumps versions across project manifests, tags, and produces a changelog |
+| 2.2f | T1 | Context-file compactness | `AGENTS.md`, `RULES.md`, and `ARCHITECTURE.md` each stay below 200 lines; when content exceeds that, the main file becomes an index referencing modular sub-files; an agent that has to scroll past 200 lines to find what it needs will skim or truncate | `RULES.md` splits into `rules/php.md`, `rules/typescript.md`, `rules/naming.md`, with the root `RULES.md` as a one-page index; the T3 rule 2.2c then tightens `AGENTS.md` further to around 100 lines |
 
 ### 2.3 Verify
 
@@ -294,13 +319,18 @@ A project reaches each tier when all items for that tier are true. A project is 
 - [ ] **1.2b** All dependencies are explicitly declared; no ambient resolution
 - [ ] **1.3a** All names communicate intent without requiring the reader to trace the call chain
 - [ ] **1.3b** No overloaded names used for different concepts in different contexts
+- [ ] **1.3c** No duplicate file basenames or class/function simple names across unrelated paths, except where documented
+- [ ] **1.3d** No empty generic names (`Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data`) used unqualified in new code
 - [ ] **1.5a** No unused classes, methods, or variables
 - [ ] **1.5b** No commented-out code blocks
 - [ ] **1.7a** A single error handling approach is applied consistently throughout
 - [ ] **1.7b** No silent failure paths
+- [ ] **1.12a** `RULES.md` declares per-language source-file size budgets and oversized files are split or justified
 - [ ] **2.1b** `ARCHITECTURE.md` exists, is current, and includes a diagram
+- [ ] **2.1g** `ARCHITECTURE.md` names an architectural pattern from the shortlist (or declares "project-specific" with rationale and dependency-direction rule)
 - [ ] **2.2a** `AGENTS.md` or `CLAUDE.md` exists at the root, is current, and covers all required sections
 - [ ] **2.2b** `RULES.md` exists and is specific enough to produce consistent output across agents
+- [ ] **2.2f** Each of `AGENTS.md`, `RULES.md`, `ARCHITECTURE.md` is under 200 lines or split into modular sub-files
 - [ ] **2.4b** Escape hatches are defined in `AGENTS.md` with specific triggering conditions
 - [ ] **2.4c** Change isolation conventions are documented
 
@@ -313,6 +343,7 @@ A project reaches each tier when all items for that tier are true. A project is 
 - [ ] **1.5c** No permanently resolved feature flags
 - [ ] **1.6a** Business logic does not leak across layers
 - [ ] **1.6b** Cross-service communication goes through declared interfaces only
+- [ ] **1.6c** The declared architectural pattern's dependency-direction rule is enforced by a tool or test
 - [ ] **1.8a** No mutable global or static state
 - [ ] **1.8b** All side effects are localised and signalled by name
 - [ ] **1.9a** Log levels have defined semantics documented in `RULES.md`
@@ -323,6 +354,7 @@ A project reaches each tier when all items for that tier are true. A project is 
 - [ ] **1.11a** All environment variables documented in `.env.example` or `docs/environment.md`
 - [ ] **1.11b** All external service dependencies documented with auth, rate limits, and quirks
 - [ ] **1.11c** Observability infrastructure documented with guidance on instrumenting new code
+- [ ] **1.12b** A pre-commit or CI check fails any source file above the declared hard ceiling (default 1500 lines), with explicit allowlist for generated content
 - [ ] **2.1c** Documentation follows an established schema with a top-level index
 - [ ] **2.1d** A machine-readable project manifest exists at the root
 - [ ] **2.1e** Canonical data and API contracts are committed and referenced from the manifest and `AGENTS.md`

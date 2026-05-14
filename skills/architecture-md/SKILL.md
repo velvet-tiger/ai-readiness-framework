@@ -67,6 +67,27 @@ Check for:
 - Container orchestration (Kubernetes, ECS, Cloud Run, etc.)
 - CI/CD platform
 
+### Architectural Pattern Discovery
+
+Identify the pattern in use so it can be named in the output (framework requirement 2.1g). Read the top two or three levels of source directories and answer:
+
+- Is there a `domain/` or `core/` directory with no infra imports? → hexagonal or clean
+- Are there `controllers/`, `services/`, `repositories/` directories with a top-down call direction? → layered
+- Are there feature-named directories each containing their own thin layers? → vertical slice
+- Are there `models/`, `views/`, `controllers/` directories? → MVC
+- Does the layout match none of the above with no obvious dependency-direction rule? → project-specific (or pattern is absent)
+
+If the pattern cannot be inferred from inspection, stop and ask the user to pick from the shortlist below. Do not guess — a wrongly-named pattern misleads every later audit.
+
+**Pattern shortlist** (in framework's order of preference for agent-friendliness):
+
+1. **Hexagonal / ports-and-adapters** — domain core has no infrastructure imports; adapters depend on domain.
+2. **Clean architecture** — formalised hexagonal with explicit use-case layer.
+3. **Layered (n-tier)** — explicit top-to-bottom direction (controller → service → repository).
+4. **Vertical slice** — feature-isolated modules, each containing its own thin layers.
+5. **MVC** — UI-driven; controller-view boundary is primary.
+6. **Project-specific** — only with diagram and explicit dependency-direction rule.
+
 ---
 
 ## Phase 2: Write ARCHITECTURE.md
@@ -80,6 +101,18 @@ Check for:
 
 [2–4 sentences. What does this system do as a whole? Who are its users? What is the core
 business function it supports?]
+
+## Architectural Pattern
+
+[State the pattern in use, drawn from the framework shortlist: hexagonal / ports-and-adapters,
+clean, layered, vertical slice, MVC, or project-specific. One paragraph naming the layers or
+ports and stating the dependency-direction rule that boundary-audit and 1.6c will enforce.]
+
+**Example:**
+
+> Ports-and-adapters. Domain core in `src/domain/`, primary adapters in `src/api/`, secondary
+> adapters in `src/infra/`. Domain has no imports from `api/` or `infra/`. Infra depends on
+> domain only.
 
 ## Components
 
@@ -256,6 +289,8 @@ Before finishing, verify:
 - [ ] Any shared databases are explicitly called out
 - [ ] Any known boundary violations are documented in Known Issues
 - [ ] All `<!-- TODO -->` placeholders are listed in a summary for the user
+- [ ] The Architectural Pattern section names a pattern from the shortlist (or declares "project-specific" with rationale) and states the dependency-direction rule
+- [ ] The file is under 200 lines (framework rule 2.2f); if longer, split into an index plus modular sub-files under `docs/architecture/`
 
 ---
 

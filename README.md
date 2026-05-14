@@ -12,6 +12,8 @@ A specification and skill set for making codebases safe for AI agent work.
 
 The AI Readiness Framework defines the minimum practices, files, and code quality standards a project needs before AI coding agents can operate on it reliably. It gives agents the ability to orient themselves, produce consistent output, verify their own work, and know when to stop and ask.
 
+The framework covers code quality (consistency, explicitness, naming, error handling, boundaries, state, logging, dependencies, observability), project structure (orientation files, machine-readable manifest, verification commands, escalation rules), and the three dimensions that materially affect agent attention: **file length** (source and context files kept within readable size), a **named architectural pattern** (declared in `ARCHITECTURE.md` and enforced by tooling), and **naming hygiene** (no collisions across paths, no unqualified generic names).
+
 The framework is structured as four tiers:
 
 | Tier | Name | What it enables |

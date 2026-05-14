@@ -291,6 +291,25 @@ Note that each service directory should have its own `AGENTS.md`. This root file
 
 ---
 
+## Length Budget
+
+`AGENTS.md` is loaded as orientation context at the start of every agent session. If it exceeds 200 lines the agent will skim or truncate, and detail beyond that point is effectively invisible.
+
+Targets:
+
+- **T1 and T2 projects**: under 200 lines (framework rule 2.2f).
+- **T3 projects**: around 100 lines (framework rule 2.2c) — the file becomes an index pointing to `docs/`.
+
+When content would push the file over budget:
+
+1. Move detailed convention text into `docs/conventions/<topic>.md` (or `RULES.md` sub-files) and replace the inline content with a one-line link.
+2. Move detailed external-service docs into `docs/integrations/<service>.md`.
+3. Keep in `AGENTS.md`: project purpose, stack summary, repository layout, escape hatches, links.
+
+After writing or updating, count lines (`wc -l AGENTS.md`). If over budget, propose splits before finalising.
+
+---
+
 ## Quality Check
 
 Before finishing, verify:
@@ -300,6 +319,7 @@ Before finishing, verify:
 - [ ] Escape hatches name specific directories and file types, not just vague categories
 - [ ] The stack section includes exact commands an agent can run
 - [ ] All `<!-- TODO -->` markers are listed in a summary for the user
+- [ ] The file is under 200 lines (T1/T2) or under ~100 lines (T3); if longer, content has been moved into linked sub-files
 
 ---
 

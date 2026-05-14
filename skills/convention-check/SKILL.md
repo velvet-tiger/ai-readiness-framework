@@ -28,7 +28,7 @@ Read `RULES.md` in full. Extract the rules into categories:
 
 - Consistency rules (dominant pattern, file placement)
 - Explicitness rules (type hints, dependency injection)
-- Naming rules (banned names, required patterns)
+- Naming rules (banned names, required patterns, collision policy)
 - Error handling rules (canonical approach, banned patterns)
 - State and side effects rules
 - Boundary rules (layer constraints)
@@ -37,6 +37,7 @@ Read `RULES.md` in full. Extract the rules into categories:
 - Logging rules
 - Dependency rules
 - Environment and configuration rules
+- File length budgets (per-category soft budgets and hard ceiling)
 
 Also read `AGENTS.md` for:
 - Repository layout (where things should live)
@@ -105,15 +106,41 @@ Look for:
 
 ### Naming
 
-**Check:** Do names communicate intent without tracing?
+**Check:** Do names communicate intent without tracing? Are they unique enough across the codebase?
 
 Look for:
-- Generic method names: `handle`, `process`, `manage`, `run`, `data`, `result`, `info`, `manager`, `helper`, `util`
+- Generic method names: `handle`, `process`, `manage`, `run`, `data`, `result`, `info`
+- Unqualified generic class/type names: `Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data`, `Info`, `Result` — these must carry a domain prefix or suffix (framework rule 1.3d)
 - Variable names that require reading the function body to understand (`$d`, `$tmp`, `$item` in a complex context)
 - Names that reuse an existing term for a different concept
 - Names that do not match the established convention for their type (e.g. an event not named in past tense, an action not named as `[Verb][Noun]`)
 
 **Flag if:** Any name in new code is on the banned list or does not follow the naming convention for its type.
+
+---
+
+### Naming Collisions
+
+**Check:** Does any newly introduced or renamed identifier collide with an existing one elsewhere in the repo? (Framework rule 1.3c.)
+
+Build collision sets across the whole repo, not just the diff:
+
+1. **Basename collisions** — group all source files by basename (`helpers.ts`, `utils.py`, `config.go`); any group with more than one entry is a collision set.
+2. **Class/type collisions** — extract all exported class, type, interface, enum, and trait simple names; group by name; any group with more than one entry is a collision set.
+3. **Function collisions** — extract all exported function simple names (or top-level functions in languages without classes); group by name; any group with more than one entry is a collision set.
+
+For each collision set, decide whether it is **load-bearing**:
+
+- Parallel adapters implementing the same port (e.g. `StripeGateway` and `PaypalGateway` both implementing `PaymentGateway`) → load-bearing; collision is allowed and should be documented in `ARCHITECTURE.md` or `RULES.md`.
+- Test fixtures with structurally identical setup files → typically load-bearing per directory.
+- Anything else → not load-bearing; rename.
+
+**Flag if:**
+
+- The current change introduces a new identifier that lands in a non-load-bearing collision set
+- The current change introduces a new basename that already exists elsewhere and is not in a recognised adapter directory
+
+When flagging, list every member of the collision set so the user can decide which to rename.
 
 ---
 
@@ -212,6 +239,26 @@ Look for:
 - `import`/`use`/`require` of a package not already in the manifest
 
 **Flag if:** Any new dependency is added (this triggers the escalation check too — both checks may fire).
+
+---
+
+### File Length
+
+**Check:** Do new or modified files respect the budgets declared in `RULES.md` (framework rules 1.12a and 1.12b)?
+
+For each changed file:
+
+1. Count lines (`wc -l <path>` or equivalent).
+2. Compare against the category soft budget from `RULES.md` (e.g. 500 lines general, 300 components, 800 fixtures).
+3. Compare against the hard ceiling (default 1500 lines).
+4. Check whether the file is on the allowlist (`.file-length-ignore` or CI config) — allowlisted files are skipped.
+
+**Flag if:**
+
+- The file exceeds the soft budget for its category, with no inline comment justifying it
+- The file exceeds the hard ceiling
+
+When flagging a soft-budget breach, suggest a split direction (by concern, not by line count). When flagging a hard-ceiling breach, treat it as a blocker.
 
 ---
 

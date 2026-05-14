@@ -112,9 +112,17 @@ Specific naming rules for this project. Include banned names and required patter
   and explicit over short and ambiguous.
 - A name must mean one thing across the entire codebase. If a name is already used for a different
   concept, choose a different name.
-- Banned generic names: `handle`, `process`, `manage`, `run`, `execute` (unless the class name
-  provides the missing context, e.g. `ProcessPaymentRefund::execute()`), `data`, `result`, `info`,
-  `manager`, `helper`, `util`, `service` (as a suffix without a specific domain noun).
+- No duplicate file basenames across unrelated directories. Two `helpers.ts` files in different
+  modules must be renamed to disambiguate (e.g. `format-helpers.ts`, `auth-helpers.ts`). The same
+  rule applies to class and function simple names — duplicates are permitted only where they are
+  parallel adapters of the same port (e.g. `StripeGateway` and `PaypalGateway` both implementing
+  `PaymentGateway`), in which case the namespace difference must be load-bearing.
+- Banned generic names used unqualified: `Service`, `Helper`, `Manager`, `Handler`, `Utils`,
+  `Data`, `Info`, `Result` — these carry no intent on their own. Prefix or suffix with a domain
+  noun: `OrderService`, `CurrencyFormatter`, `WebhookDispatcher`.
+- Banned generic method names without context from the class name: `handle`, `process`, `manage`,
+  `run`, `execute` (permitted on Action classes where the verb is in the class name, e.g.
+  `ProcessPaymentRefund::execute()`).
 - Action classes: named as `[Verb][Noun]` — `CreateSubscription`, `CancelOrder`, `RefundPayment`
 - Events: named in past tense — `PaymentSucceeded`, `OrderCancelled`, `SubscriptionCreated`
 - Exceptions: named as `[Noun][Problem]Exception` — `PaymentDeclinedException`,
@@ -176,12 +184,14 @@ The single most important section. Name the specific approach used in this proje
 
 ### Boundaries
 
-Name the actual layers in this project. Do not write generic layer rules.
+Name the actual architectural pattern from `ARCHITECTURE.md` (framework rule 2.1g) and the actual layers in this project. Do not write generic layer rules. The dependency-direction rule stated here must match the one enforced by `boundary-audit` and 1.6c.
 
 **Example (Laravel / layered architecture):**
 ```markdown
 ## Boundaries
 
+- Pattern: **layered (n-tier)**. Dependency direction is top-to-bottom: Controller → Action →
+  Repository. A lower layer never imports from a higher layer.
 - Controllers (`app/Http/Controllers/`) handle HTTP only: validate the request, call one Action,
   return the response. No business logic. No database calls.
 - Actions (`app/Actions/`) handle business logic only. No HTTP concerns. No direct database
@@ -191,6 +201,18 @@ Name the actual layers in this project. Do not write generic layer rules.
 - Do not reach across service boundaries directly. Cross-service calls go through the HTTP client
   wrapper at `app/Http/Client/` or through a queued event.
 - Do not write to another service's database under any circumstances.
+```
+
+**Example (Rust service / hexagonal):**
+```markdown
+## Boundaries
+
+- Pattern: **hexagonal / ports-and-adapters**. Domain core in `src/domain/`. Primary adapters in
+  `src/api/` (HTTP, CLI). Secondary adapters in `src/infra/` (DB, queues, external services).
+  `domain` has no imports from `api` or `infra`. `infra` depends on `domain` only.
+- Ports are defined as traits in `src/domain/ports/`. Implementations live in `src/infra/`.
+- New external dependencies (database, message broker, third-party API) must be introduced as a
+  port + adapter pair, not called directly from the domain.
 ```
 
 ---
@@ -286,6 +308,27 @@ Name the logger and the required fields.
 
 ---
 
+### File Length
+
+Declare per-category source-file size budgets (framework rules 1.12a and 1.12b). The budgets are advisory targets; the hard ceiling fails CI.
+
+**Example:**
+```markdown
+## File Length
+
+- Soft budgets (split or justify with an inline comment naming the reason):
+  - General source: 500 lines
+  - UI components: 300 lines
+  - Generated migrations, fixtures, seeders: 800 lines
+- Hard ceiling: no source file may exceed 1500 lines. This is enforced in CI.
+- Allowlisted from the hard ceiling: lockfiles, generated code (`*.generated.*`), snapshot fixtures
+  under `tests/__snapshots__/`. Declared in `.file-length-ignore` at the repo root.
+- When a file would exceed its soft budget, split by concern (separate file per responsibility),
+  not by line count (do not split a single coherent class across two files).
+```
+
+---
+
 ### Environment and Configuration
 
 **Example:**
@@ -329,10 +372,13 @@ Before finishing, verify:
 - [ ] Every rule is specific — it names actual classes, directories, or patterns from this project
 - [ ] No rule contradicts what is actually done in the codebase
 - [ ] The error handling section names the specific approach in use
-- [ ] The boundaries section names the actual layers, not generic ones
+- [ ] The boundaries section names the architectural pattern (matching `ARCHITECTURE.md` 2.1g) and the actual layers, not generic ones
+- [ ] The naming section includes the collision rule (1.3c) and the unqualified-generics ban (1.3d)
+- [ ] The file length section declares per-category soft budgets and the hard ceiling (1.12a, 1.12b)
 - [ ] The logging section names the actual logger and required fields
 - [ ] The escalation conditions match those in `AGENTS.md`
 - [ ] No rule is so broad it provides no guidance (e.g. "write clean code", "use good names")
+- [ ] The file is under 200 lines (framework rule 2.2f); if longer, content is split into `rules/<topic>.md` sub-files with the root `RULES.md` as an index
 
 ---
 

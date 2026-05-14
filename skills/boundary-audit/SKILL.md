@@ -27,17 +27,21 @@ Agents learn what correct looks like by reading the code. A controller that cont
 
 ## Phase 1: Establish the Layer Map
 
-Read `AGENTS.md`, `RULES.md`, and the directory structure. Identify:
+Read `ARCHITECTURE.md` (specifically its **Architectural Pattern** section — framework rule 2.1g), `AGENTS.md`, `RULES.md`, and the directory structure.
 
-**What layers exist?** Common structures:
+**If `ARCHITECTURE.md` does not name a pattern, stop and escalate.** The audit cannot run cleanly without a declared pattern: without one, there is no canonical dependency-direction rule to validate against and "violation" becomes a matter of opinion. Send the user to the `architecture-md` skill first.
 
-| Structure | Layers |
-|-----------|--------|
-| MVC | Controller → Model |
-| Layered | Controller → Service → Repository → Model |
-| Action-based | Controller → Action → Repository → Model |
-| Hexagonal | Handler → Use Case → Domain → Port (Adapter) |
-| CQRS | Command Handler / Query Handler → Domain → Repository |
+**Pattern → layer mapping.** Once the pattern is named, the layers and dependency direction are determined:
+
+| Pattern | Layers | Dependency direction |
+|---------|--------|---------------------|
+| Hexagonal / ports-and-adapters | Domain core ← Adapters (primary + secondary) | Adapters depend on domain; domain depends on nothing |
+| Clean architecture | Entities ← Use cases ← Interface adapters ← Frameworks/drivers | Outer depends on inner; inner depends on nothing outer |
+| Layered (n-tier) | Controller → Service → Repository → Model | Top-to-bottom only; lower layer never imports higher |
+| Vertical slice | Feature module (own thin layers per feature) | Within slice: top-to-bottom; across slices: shared kernel only |
+| MVC | Controller → Model; View ← Controller | Controller orchestrates; View reads model |
+| CQRS | Command Handler / Query Handler → Domain → Repository | Handlers depend on domain; domain depends on nothing |
+| Action-based (Laravel variant) | Controller → Action → Repository → Model | Top-to-bottom only |
 
 **Where does each layer live?**
 
@@ -141,6 +145,34 @@ Look for in repository files:
 - Calling external HTTP APIs
 - Domain logic that determines what to query based on business rules (this belongs in the service)
 - Methods that do multiple unrelated database operations in one call
+
+---
+
+## Phase 2b: Find Pattern-Direction Violations
+
+Beyond per-layer responsibility, the declared pattern imposes a **dependency direction**. Validate it.
+
+**How to find violations:**
+
+- Build the import graph for the codebase (or, at minimum, grep for cross-layer imports).
+- For each import edge `A → B`, check it against the pattern's allowed direction.
+- Flag any edge going the wrong way as a pattern violation distinct from a layer-responsibility violation.
+
+**Examples:**
+
+- Hexagonal: `src/domain/order.ts` imports from `src/infra/database/...` — domain depends on infra. **Violation.** Introduce a port (trait/interface) in domain and an adapter in infra implementing it.
+- Layered: `app/Repositories/UserRepository.php` imports from `app/Http/Controllers/...` — lower depends on higher. **Violation.** Whatever data the repository needs must be passed in by the controller.
+- Vertical slice: `features/orders/...` imports from `features/billing/...` — cross-slice import. **Violation** unless the import is from a declared shared kernel.
+
+**Preferred tooling** (configure once, run in CI for framework rule 1.6c):
+
+- PHP: `qossmic/deptrac`
+- TypeScript/JavaScript: `dependency-cruiser`
+- Java/Kotlin: ArchUnit
+- Rust: `cargo-modules` graph + custom check; or test-based import assertions
+- Python: `import-linter`
+
+Report every pattern-direction violation as its own finding, distinct from layer-responsibility violations.
 
 ---
 
@@ -297,9 +329,12 @@ into OrderRepository and PaymentRepository.
 
 After remediation:
 
+- [ ] `ARCHITECTURE.md` names the architectural pattern (framework rule 2.1g); audit's findings reference it
 - [ ] No controller file contains database queries or domain logic
 - [ ] No service file contains HTTP request/response objects or raw SQL (if repositories are the pattern)
 - [ ] No direct cross-service code imports
+- [ ] All pattern-direction violations (Phase 2b) are remediated or documented
+- [ ] A pattern-enforcement tool or test is configured to run in CI (framework rule 1.6c) — deptrac, dependency-cruiser, ArchUnit, import-linter, or equivalent
 - [ ] Any shared database access is documented in `ARCHITECTURE.md` as a known issue
 - [ ] Tests pass
 
@@ -309,6 +344,7 @@ After remediation:
 
 Stop and ask before proceeding if:
 
+- `ARCHITECTURE.md` does not name an architectural pattern — stop and route the user to the `architecture-md` skill first; resuming this audit without a declared pattern produces opinion-based findings, not violations
 - The established layer structure cannot be determined — there is no `AGENTS.md`, no `RULES.md`, and the code itself is inconsistent — ask the user which structure to standardise on
 - A violation is deeply embedded and the extraction would require changes to more than 10 files — agree on scope before proceeding
 - A shared database is found — this is an architectural decision that requires human judgement about the remediation path

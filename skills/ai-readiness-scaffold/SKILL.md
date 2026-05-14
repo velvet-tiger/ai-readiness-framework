@@ -54,6 +54,18 @@ Read the top-level directory listing. Identify:
 - Where business logic lives vs. HTTP handlers vs. data access
 - Where tests live
 
+### Architectural Pattern Detection
+
+Inspect the directory layout to detect which pattern is in use (needed for `ARCHITECTURE.md` 2.1g). Use the heuristics from the `architecture-md` skill:
+
+- `domain/` or `core/` directory with no infra imports → hexagonal or clean
+- `controllers/`, `services/`, `repositories/` with top-down direction → layered
+- Feature-named directories each with their own thin layers → vertical slice
+- `models/`, `views/`, `controllers/` → MVC
+- No clear pattern → flag for user choice (do not guess)
+
+If the pattern cannot be inferred, mark for explicit user input rather than picking one silently. A wrong pattern declaration mis-trains every later audit.
+
 ### Dependency Detection
 
 From the package manifest, identify:
@@ -78,7 +90,17 @@ Write `ARCHITECTURE.md` at the project root.
 **1. Overview**
 One paragraph describing what the system does, who uses it, and what it is responsible for.
 
-**2. Services / Components**
+**2. Architectural Pattern**
+Name the pattern from the framework shortlist (hexagonal / ports-and-adapters, clean, layered, vertical slice, MVC, or "project-specific"). State the dependency-direction rule that boundary-audit will enforce.
+
+If the pattern was inferred from structure detection, write it. If it could not be inferred, write:
+
+```
+<!-- TODO: Choose the architectural pattern from: hexagonal, clean, layered, vertical slice, MVC,
+or project-specific. State the dependency-direction rule. See framework rule 2.1g. -->
+```
+
+**3. Services / Components**
 A table or list of every major component with its purpose and technology:
 
 ```
@@ -90,13 +112,13 @@ A table or list of every major component with its purpose and technology:
 | database  | Primary data store | PostgreSQL |
 ```
 
-**3. Communication Patterns**
+**4. Communication Patterns**
 How components talk to each other: HTTP, queues, shared database, events. Be explicit about which services publish and which consume.
 
-**4. Infrastructure**
+**5. Infrastructure**
 Where the system runs. Cloud provider, key managed services, deployment approach.
 
-**5. Diagram**
+**6. Diagram**
 A Mermaid diagram showing service boundaries and communication:
 
 ```mermaid
@@ -111,7 +133,7 @@ graph TD
 
 Adapt the diagram to reflect what was actually discovered. Do not use a generic template.
 
-**6. Key Data Flows**
+**7. Key Data Flows**
 2–3 of the most important request flows through the system, described as numbered steps.
 
 ### Placeholder Convention
@@ -227,8 +249,16 @@ Each section below maps to a framework requirement. Write rules that are specifi
 - Rules about magic or dynamic dispatch
 
 **Naming**
-- Banned generic names (`handle`, `process`, `data`, `result`, `manager`, `helper`, `util`)
+- Banned generic method names (`handle`, `process`, `manage`, `run`, `data`, `result`, `info`)
+- Banned unqualified class/type names (`Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data`, `Info`, `Result`) — these must carry a domain prefix or suffix (framework rule 1.3d)
+- No duplicate file basenames or class/function simple names across unrelated directories, except parallel adapters of the same port (framework rule 1.3c)
 - Rules specific to this codebase's naming patterns
+
+**File Length** (framework rule 1.12)
+- Per-category soft budgets (defaults to seed: 500 lines general source; 300 lines UI components; 800 lines generated migrations/fixtures)
+- Hard ceiling: 1500 lines (configurable per project)
+- Allowlist for generated content and lockfiles in `.file-length-ignore`
+- When a file approaches its budget, split by concern, not by line count
 
 **Error Handling**
 - Name the established error handling approach
@@ -240,6 +270,8 @@ Each section below maps to a framework requirement. Write rules that are specifi
 - Getters must not write; queries must not mutate
 
 **Boundaries**
+- State the architectural pattern (matching the `ARCHITECTURE.md` Pattern section, framework rule 2.1g)
+- State the dependency-direction rule the pattern requires
 - Layer rules appropriate to the detected architecture
 - Cross-service communication rules
 
@@ -274,7 +306,19 @@ Each section below maps to a framework requirement. Write rules that are specifi
 
 ---
 
-## Phase 5: Report
+## Phase 5: Verify Length and Report
+
+Before finalising, count lines on each generated file and check against framework rule 2.2f (under 200 lines each):
+
+```
+wc -l ARCHITECTURE.md AGENTS.md RULES.md
+```
+
+If any file exceeds 200 lines, restructure before reporting:
+
+- **`AGENTS.md` over budget**: move detail (external dependencies, observability deep-dives, convention specifics) into `docs/`-tree sub-files. Keep purpose, stack, layout, escape hatches, and links in the root file.
+- **`RULES.md` over budget**: split into `rules/<topic>.md` sub-files (`rules/naming.md`, `rules/error-handling.md`, etc.) and replace the root with an index referencing each.
+- **`ARCHITECTURE.md` over budget**: split components and data flows into `docs/architecture/<topic>.md` sub-files; keep overview, pattern, and diagram in the root.
 
 After generating the files, output a summary:
 
@@ -282,9 +326,12 @@ After generating the files, output a summary:
 ## Scaffold Complete
 
 ### Files Created
-- ARCHITECTURE.md — [brief description of what was captured]
-- AGENTS.md — [brief description of what was captured]
-- RULES.md — [brief description of what was captured]
+- ARCHITECTURE.md — [lines] — [brief description of what was captured]
+- AGENTS.md — [lines] — [brief description of what was captured]
+- RULES.md — [lines] — [brief description of what was captured]
+
+### Length Status
+- All three context files within the 200-line budget (framework rule 2.2f): [yes / split into sub-files]
 
 ### Placeholders Requiring Human Input
 1. [file:section] — [what is needed]

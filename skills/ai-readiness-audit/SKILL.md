@@ -47,6 +47,8 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 **1.3 Naming**
 - [ ] All classes, methods, and variables communicate intent without requiring call-chain tracing
 - [ ] No overloaded names — a name means one thing across the entire codebase
+- [ ] **1.3c** No duplicate file basenames or class/function simple names across unrelated paths (or each collision is documented as load-bearing — e.g. parallel adapters)
+- [ ] **1.3d** No empty generic names (`Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data`) used unqualified in new code; `RULES.md` lists banned generics
 
 **1.5 Dead Code**
 - [ ] No unused classes, methods, or variables
@@ -56,14 +58,20 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 - [ ] A single consistent error handling approach applied throughout
 - [ ] No silent failure paths — every error produces a typed error, log event, or visible exception
 
+**1.12 File Length**
+- [ ] **1.12a** `RULES.md` declares per-category source-file size budgets (e.g. 500 lines general, 300 components, 800 generated/fixtures)
+- [ ] Source files comply with the declared budget — sample 5–10 of the largest files; if any exceed the budget without an inline justification, FAIL
+
 #### Project Structure
 
 **2.1 Orient**
 - [ ] `ARCHITECTURE.md` exists at the root, covers all services and communication patterns, includes a diagram, and is current
+- [ ] **2.1g** `ARCHITECTURE.md` names an architectural pattern from the shortlist (hexagonal/ports-and-adapters, clean, layered, vertical slice, MVC, or "project-specific" with rationale) and states the dependency-direction rule
 
 **2.2 Act**
 - [ ] `AGENTS.md` or `CLAUDE.md` exists at the root, covers project purpose, stack, conventions, directory ownership, and what the project does not do
 - [ ] `RULES.md` exists (or rules are inline in `AGENTS.md`) and is specific enough that two agents produce consistent output independently
+- [ ] **2.2f** Each of `AGENTS.md`, `RULES.md`, `ARCHITECTURE.md` is under 200 lines, or the file is an index referencing modular sub-files; run `wc -l` on each and verify
 
 **2.4 Escalate**
 - [ ] Escape hatch conditions are defined in `AGENTS.md` with specific triggering conditions
@@ -89,6 +97,7 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 **1.6 Boundaries**
 - [ ] Business logic does not leak across layers
 - [ ] Cross-service communication goes through declared interfaces only
+- [ ] **1.6c** The declared architectural pattern's dependency-direction rule is enforced by a tool or test (deptrac, dependency-cruiser, ArchUnit, import-linter, or equivalent) and runs in CI or pre-commit
 
 **1.8 State**
 - [ ] No mutable global or static state
@@ -107,6 +116,9 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 - [ ] All environment variables documented in `.env.example` or `docs/environment.md`
 - [ ] All external service dependencies documented with auth approach, rate limits, quirks
 - [ ] Observability infrastructure documented with guidance for new code
+
+**1.12 File Length (T2)**
+- [ ] **1.12b** A pre-commit or CI check fails any source file above the declared hard ceiling (default 1500 lines); generated content and lockfiles allowlisted via `.file-length-ignore` or CI config
 
 #### Project Structure
 
