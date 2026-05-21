@@ -12,8 +12,13 @@ Generates the minimum required files for a project to reach Tier 1 AI readiness:
 - `AGENTS.md` — agent orientation file
 - `RULES.md` — coding rules
 - `ARCHITECTURE.md` — architecture overview with diagram
+- `.claudeignore` (or `.agentignore`) — agent-visibility ignore file (framework rule 2.1i)
 
 Each file is generated from what can be discovered in the codebase, with clearly marked placeholders for anything that requires human input. The goal is a complete, accurate draft — not a generic template.
+
+Optional Tier 2 scaffolds (generate when the audit identifies gaps):
+
+- `docs/codebase-map.md` — concept-to-directory guide (framework rule 2.1j)
 
 ---
 
@@ -21,8 +26,9 @@ Each file is generated from what can be discovered in the codebase, with clearly
 
 1. Read the project root and key config files to detect the stack
 2. Run the discovery phase below
-3. Generate each file in order: `ARCHITECTURE.md` → `AGENTS.md` → `RULES.md`
-4. List all placeholders that need human review
+3. Generate each file in order: `.claudeignore` → `ARCHITECTURE.md` → `AGENTS.md` → `RULES.md`
+4. Optionally scaffold `docs/codebase-map.md` if directory names are not self-describing
+5. List all placeholders that need human review
 
 ---
 
@@ -81,7 +87,79 @@ Check for:
 
 ---
 
-## Phase 2: Generate ARCHITECTURE.md
+## Phase 2: Generate `.claudeignore`
+
+Write `.claudeignore` (or `.agentignore`, whichever the project's chosen agent runtime expects) at the project root.
+
+Seed the file with the following exclusions, then add anything detected during discovery:
+
+```
+# Dependency directories
+node_modules/
+vendor/
+.venv/
+target/
+bower_components/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+public/build/
+.svelte-kit/
+*.egg-info/
+
+# Lockfiles (exclude unless the agent specifically needs to audit them)
+*.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+composer.lock
+Cargo.lock
+
+# Generated content
+**/__generated__/**
+**/*.generated.*
+**/generated/
+*.pb.go
+*.gen.ts
+
+# Binary and media assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+
+# Test snapshots and large fixtures
+**/__snapshots__/**
+tests/fixtures/large/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+```
+
+Add project-specific entries based on what was detected:
+
+- Custom build output paths from `Dockerfile`, `Makefile`, or CI config
+- Code generation output directories (gRPC, OpenAPI, GraphQL codegen)
+- Vendored or submoduled directories specific to this project
+- Any directory listed in `.gitignore` that contains generated rather than ignored-for-security content
+
+If a `.gitignore` already excludes most generated content, the `.claudeignore` only needs to add entries that `.gitignore` does not cover (because agent ignore semantics are independent of git ignore).
+
+---
+
+## Phase 3: Generate ARCHITECTURE.md
 
 Write `ARCHITECTURE.md` at the project root.
 
@@ -146,7 +224,7 @@ Mark anything that cannot be determined from the code with:
 
 ---
 
-## Phase 3: Generate AGENTS.md
+## Phase 4: Generate AGENTS.md
 
 Write `AGENTS.md` at the project root.
 
@@ -223,13 +301,50 @@ Reference to `.env.example` or `docs/environment.md`. If neither exists, note th
 
 How logging, tracing, and metrics work. What tool is used. What fields every log statement must include.
 
+**13. MCP Servers** (framework rule 2.2g)
+
+List every MCP server an agent is expected to have connected when working on this project. For each, give its purpose and the install command. If none are required, write `None required` rather than omitting the section.
+
+```
+- Linear MCP — ticket lookup and status. Install: `claude mcp install linear`
+- Sentry MCP — error context. Install: `claude mcp install sentry`
+- Internal docs MCP — engineering wiki search. Install: see internal docs
+```
+
+**14. Language Server** (framework rule 2.3e)
+
+State which LSP server(s) the project uses and how to install them. If the project's setup process installs them automatically, name the command.
+
+```
+- TypeScript: `tsserver` (installed via `pnpm install`)
+- PHP: `phpactor` (install: `make setup-lsp`)
+```
+
+**15. Agent Configuration Owner** (framework rule 2.4e)
+
+The named person or team that owns the agent configuration for this project. Required at Tier 3, recommended at Tier 2.
+
+```
+Owner: @platform-dx
+Contact: #agent-platform on Slack
+Responsible for: quarterly review of `.claude/`, `AGENTS.md`, `RULES.md`
+```
+
+If the project has subdirectory `AGENTS.md` files (framework rule 2.1h), link to them from the root file so agents discover them when working in those subtrees:
+
+```
+See also:
+- `app/Payments/AGENTS.md` for payment-specific conventions
+- `app/Billing/AGENTS.md` for billing conventions and PCI scope notes
+```
+
 ### Placeholder Convention
 
 Use `<!-- TODO: [description] -->` for anything requiring human input.
 
 ---
 
-## Phase 4: Generate RULES.md
+## Phase 5: Generate RULES.md
 
 Write `RULES.md` at the project root.
 
@@ -306,7 +421,47 @@ Each section below maps to a framework requirement. Write rules that are specifi
 
 ---
 
-## Phase 5: Verify Length and Report
+## Phase 6: Generate `docs/codebase-map.md` (optional, Tier 2)
+
+Generate this file only if directory names at the top of the tree do not self-describe their contents. If a developer reading the directory listing alone can guess what each one holds, skip this phase.
+
+Triggering signals during discovery:
+- Top-level directories with vague names (`core/`, `lib/`, `common/`, `shared/` without further context)
+- Vertical-slice modules where the slice names are domain concepts that may not be obvious to a newcomer
+- Legacy directories whose names reflect historical structure rather than current responsibility
+
+Template:
+
+```markdown
+# Codebase Map
+
+A one-page guide from concept to filesystem location for this project. For the system architecture (services, communication, data flow), see ARCHITECTURE.md.
+
+## Concept index
+
+| Concept | Where it lives | Notes |
+|---------|----------------|-------|
+| [concept] | `[path/to/directory]` | [one-line note on what is found here] |
+
+## Where to put new code
+
+| You want to add | Put it under |
+|-----------------|--------------|
+| A new HTTP endpoint | [path] |
+| A new background job | [path] |
+| A new database query | [path] |
+| A new domain rule | [path] |
+
+## Historical layout notes
+
+[Optional. Document any directory whose name no longer matches its current contents, and any layout decision that surprises newcomers.]
+```
+
+Fill the table from discovery. If any cell cannot be confidently filled, mark it `<!-- TODO -->` rather than guessing.
+
+---
+
+## Phase 7: Verify Length and Report
 
 Before finalising, count lines on each generated file and check against framework rule 2.2f (under 200 lines each):
 
@@ -326,9 +481,11 @@ After generating the files, output a summary:
 ## Scaffold Complete
 
 ### Files Created
+- .claudeignore — [count] patterns — [stack-specific entries added]
 - ARCHITECTURE.md — [lines] — [brief description of what was captured]
 - AGENTS.md — [lines] — [brief description of what was captured]
 - RULES.md — [lines] — [brief description of what was captured]
+- docs/codebase-map.md — [created / skipped because directories self-describe]
 
 ### Length Status
 - All three context files within the 200-line budget (framework rule 2.2f): [yes / split into sub-files]

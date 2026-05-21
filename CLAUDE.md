@@ -186,14 +186,3 @@ Location: `../keos/keos-nextjs`
 Location: `../../speckitty-test/worldtime`
 
 <!-- automatic:groups:end -->
-
-<!-- automatic:index:start -->
-## Agent Instructions
-
-The following instruction files are loaded by Automatic. Refer to them for project-specific rules and context.
-
-- [Automatic Service](.automatic/instructions/automatic-service.md)
-- [Automatic Process](.automatic/instructions/automatic-process.md)
-- [Automatic General](.automatic/instructions/automatic-general.md)
-- [Claude 47](.automatic/instructions/claude-47.md)
-<!-- automatic:index:end -->

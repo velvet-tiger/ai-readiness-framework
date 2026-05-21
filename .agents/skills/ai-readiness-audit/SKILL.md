@@ -47,8 +47,6 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 **1.3 Naming**
 - [ ] All classes, methods, and variables communicate intent without requiring call-chain tracing
 - [ ] No overloaded names — a name means one thing across the entire codebase
-- [ ] **1.3c** No duplicate file basenames or class/function simple names across unrelated paths (or each collision is documented as load-bearing — e.g. parallel adapters)
-- [ ] **1.3d** No empty generic names (`Service`, `Helper`, `Manager`, `Handler`, `Utils`, `Data`) used unqualified in new code; `RULES.md` lists banned generics
 
 **1.5 Dead Code**
 - [ ] No unused classes, methods, or variables
@@ -58,21 +56,14 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 - [ ] A single consistent error handling approach applied throughout
 - [ ] No silent failure paths — every error produces a typed error, log event, or visible exception
 
-**1.12 File Length**
-- [ ] **1.12a** `RULES.md` declares per-category source-file size budgets (e.g. 500 lines general, 300 components, 800 generated/fixtures)
-- [ ] Source files comply with the declared budget — sample 5–10 of the largest files; if any exceed the budget without an inline justification, FAIL
-
 #### Project Structure
 
 **2.1 Orient**
 - [ ] `ARCHITECTURE.md` exists at the root, covers all services and communication patterns, includes a diagram, and is current
-- [ ] **2.1g** `ARCHITECTURE.md` names an architectural pattern from the shortlist (hexagonal/ports-and-adapters, clean, layered, vertical slice, MVC, or "project-specific" with rationale) and states the dependency-direction rule
-- [ ] **2.1i** A `.claudeignore`, `.agentignore`, or equivalent exists at the root and excludes generated content, binary assets, lockfiles, and vendored dependencies; check by file existence and by sampling listed patterns
 
 **2.2 Act**
 - [ ] `AGENTS.md` or `CLAUDE.md` exists at the root, covers project purpose, stack, conventions, directory ownership, and what the project does not do
 - [ ] `RULES.md` exists (or rules are inline in `AGENTS.md`) and is specific enough that two agents produce consistent output independently
-- [ ] **2.2f** Each of `AGENTS.md`, `RULES.md`, `ARCHITECTURE.md` is under 200 lines, or the file is an index referencing modular sub-files; run `wc -l` on each and verify
 
 **2.4 Escalate**
 - [ ] Escape hatch conditions are defined in `AGENTS.md` with specific triggering conditions
@@ -98,7 +89,6 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 **1.6 Boundaries**
 - [ ] Business logic does not leak across layers
 - [ ] Cross-service communication goes through declared interfaces only
-- [ ] **1.6c** The declared architectural pattern's dependency-direction rule is enforced by a tool or test (deptrac, dependency-cruiser, ArchUnit, import-linter, or equivalent) and runs in CI or pre-commit
 
 **1.8 State**
 - [ ] No mutable global or static state
@@ -118,39 +108,24 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 - [ ] All external service dependencies documented with auth approach, rate limits, quirks
 - [ ] Observability infrastructure documented with guidance for new code
 
-**1.12 File Length (T2)**
-- [ ] **1.12b** A pre-commit or CI check fails any source file above the declared hard ceiling (default 1500 lines); generated content and lockfiles allowlisted via `.file-length-ignore` or CI config
-
 #### Project Structure
 
 **2.1 Orient**
 - [ ] Documentation follows an established schema with a top-level index
 - [ ] A machine-readable project manifest exists at the root
-- [ ] **2.1h** Deep or specialised subdirectories carry their own `AGENTS.md` / `CLAUDE.md` files; sample 2-3 of the largest subtrees and check for a local context file where conventions differ from the root
-- [ ] **2.1j** A `docs/codebase-map.md` (or equivalent one-page concept-to-directory guide) exists where the directory structure does not self-describe; not required where directories are self-evidently named
-
-**2.2 Act**
-- [ ] **2.2g** `AGENTS.md` lists every MCP server expected to be connected for normal agent work on this project, with the purpose of each and installation instructions
 
 **2.3 Verify**
 - [ ] A reproducible environment exists (`Dockerfile`, `.devcontainer/`, or `Makefile` with standard targets)
 - [ ] Test surface covers critical contracts and a green result is genuine signal
-- [ ] **2.3e** An LSP server for each primary language is documented and installable; check `AGENTS.md` or setup docs for an LSP install instruction or `make setup-lsp` style target
 
 ---
 
 ### Tier 3 — Higher Autonomy
 
 - [ ] `adr/` directory with at least one ADR per major structural decision
-- [ ] Sub-agent library (`agents/` or `.claude/agents/`) with single-responsibility files, including at least one explorer / editor split per framework rule 2.2d
+- [ ] Sub-agent library (`agents/` or `.claude/agents/`) with single-responsibility files
 - [ ] Skill set covering at minimum the release workflow
 - [ ] Agent output review standard documented in `CONTRIBUTING.md`
-- [ ] **2.1k** A documented cadence (every 3-6 months) exists for reviewing and pruning agent configuration; check for a review checklist, a calendar entry referenced in `AGENTS.md`, or a `docs/agent-config-review.md`
-- [ ] **2.2h** A committed `.claude/` or `.agents/` directory declares hooks, sub-agents, skills, and MCP configuration as code; not relying on per-developer local setup
-- [ ] **2.2i** A Stop hook (or equivalent) proposes `AGENTS.md` / `RULES.md` updates from session reflections; check `.claude/hooks.json` or equivalent for a Stop-event hook that opens proposed updates rather than applying them silently
-- [ ] **2.2j** (optional) Where multiple projects share configuration, the configuration is packaged as a plugin or installable bundle
-- [ ] **2.3f** Lint, format, and structural checks run as pre-edit, pre-commit, or pre-write hooks that block non-conforming writes; check `.git/hooks`, `.pre-commit-config.yaml`, or `.claude/hooks.json`
-- [ ] **2.4e** A named person or team is documented in `AGENTS.md` as the DRI for agent configuration; check the AGENTS.md for an "Agent configuration owner" or similar entry
 
 ---
 

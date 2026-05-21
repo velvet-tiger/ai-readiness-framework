@@ -259,69 +259,6 @@ If it does not exist: note that it should be created, and list the key variables
 
 ---
 
-### 13. MCP Servers (framework rule 2.2g)
-
-**What to write:** Every MCP server an agent is expected to have connected when working on this project, with the purpose of each and the install command. If none are required, write `None required` so the absence is intentional rather than missing.
-
-**Example:**
-```
-- Linear MCP — ticket lookup and status. Install: `claude mcp install linear`
-- Sentry MCP — error context and stack traces. Install: `claude mcp install sentry`
-- Internal docs MCP — engineering wiki search. Install: see https://wiki.internal/mcp-setup
-```
-
-This section is the single source of truth for which agent tooling the project assumes; it should match what `.claude/mcp.json` declares if the project commits one (framework rule 2.2h).
-
----
-
-### 14. Language Server (framework rule 2.3e)
-
-**What to write:** Which LSP server(s) the project uses, the install command, and whether the project's standard setup installs them automatically. Agents that have an LSP connected do symbol-precise navigation; agents without one fall back to string-based grep.
-
-**Example:**
-```
-- TypeScript: `tsserver` — installed automatically via `pnpm install`
-- PHP: `phpactor` — install with `make setup-lsp`; required before running tests
-```
-
-If the project does not currently provide an LSP, mark it explicitly:
-
-```
-- No LSP currently configured. <!-- TODO: install phpactor / tsserver / gopls before reaching Tier 2 -->
-```
-
----
-
-### 15. Agent Configuration Owner (framework rule 2.4e)
-
-**What to write:** The named person or team that owns the agent configuration for this project. Required at Tier 3 and recommended at Tier 2 so contributors know whom to contact when configuration breaks.
-
-**Example:**
-```
-Owner: @platform-dx
-Contact: #agent-platform on Slack
-Responsible for: quarterly review of `.claude/`, `AGENTS.md`, `RULES.md` (framework rule 2.1k)
-```
-
----
-
-### Cross-references to subdirectory `AGENTS.md` files (framework rule 2.1h)
-
-If the project has hierarchical context files in deep or specialised subdirectories, link to them from the root `AGENTS.md` so agents discover them on first read.
-
-**Example:**
-```
-## See also (local context files)
-
-- `app/Payments/AGENTS.md` — payment gateway conventions, idempotency rules
-- `app/Billing/AGENTS.md` — billing logic, PCI scope notes
-- `frontend/AGENTS.md` — frontend conventions, design system usage
-```
-
-For monorepos this responsibility is covered by package-level `AGENTS.md` files (framework rule 3.2a) instead.
-
----
-
 ## Monorepo Additions
 
 If the project is a monorepo, also add:
@@ -354,25 +291,6 @@ Note that each service directory should have its own `AGENTS.md`. This root file
 
 ---
 
-## Length Budget
-
-`AGENTS.md` is loaded as orientation context at the start of every agent session. If it exceeds 200 lines the agent will skim or truncate, and detail beyond that point is effectively invisible.
-
-Targets:
-
-- **T1 and T2 projects**: under 200 lines (framework rule 2.2f).
-- **T3 projects**: around 100 lines (framework rule 2.2c) — the file becomes an index pointing to `docs/`.
-
-When content would push the file over budget:
-
-1. Move detailed convention text into `docs/conventions/<topic>.md` (or `RULES.md` sub-files) and replace the inline content with a one-line link.
-2. Move detailed external-service docs into `docs/integrations/<service>.md`.
-3. Keep in `AGENTS.md`: project purpose, stack summary, repository layout, escape hatches, links.
-
-After writing or updating, count lines (`wc -l AGENTS.md`). If over budget, propose splits before finalising.
-
----
-
 ## Quality Check
 
 Before finishing, verify:
@@ -382,7 +300,6 @@ Before finishing, verify:
 - [ ] Escape hatches name specific directories and file types, not just vague categories
 - [ ] The stack section includes exact commands an agent can run
 - [ ] All `<!-- TODO -->` markers are listed in a summary for the user
-- [ ] The file is under 200 lines (T1/T2) or under ~100 lines (T3); if longer, content has been moved into linked sub-files
 
 ---
 

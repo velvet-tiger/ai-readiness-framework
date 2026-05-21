@@ -1,16 +1,34 @@
 # AI Readiness Framework
-**Version:** 0.2
-**Status:** Draft
+
+**Version:** 1.0
+**Author:** Christopher Skene
+**Licence:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 
 ## Purpose
 
-This specification defines the minimum set of practices, files, structures, and code quality standards that a project must have in place before AI coding agents can operate on it with low error rates and minimal human intervention. It covers both single-repository and monorepo layouts.
+This specification defines the minimum set of practices, files, structures, code quality standards, and harness configuration that a project must have in place before AI coding agents can operate on it with low error rates and minimal human intervention. It covers both single-repository and monorepo layouts.
 
 A project that satisfies this specification gives agents the ability to orient themselves, act within defined boundaries, verify their own output, and escalate correctly when they encounter decisions that require human judgement.
 
 The aim is not to make a project perfect. The aim is to get a project to the point where agents can work on it safely.
+
+This version covers both **codebase readiness** (Parts 1 and 3) and **harness configuration** — the hooks, ignore files, language servers, MCP servers, and committed agent context that determine how an agent meets the codebase at runtime. Harness items are folded into the existing Part 2 capability sections (Orient, Act, Verify, Escalate) rather than collected separately, because each one belongs to one of those four capabilities. A codebase that satisfies Part 1 but ships no harness configuration is still a codebase an agent must reorient itself to on every session.
+
+---
+
+## Fundamentally Hostile Patterns
+
+Some patterns make a codebase agent-hostile in a way that the tiers cannot fix without prior structural work. A project displaying any of these patterns must address them before any tier work begins; no amount of `AGENTS.md` writing or rules tuning will compensate.
+
+- **Millions of files without clear organisation.** An agent that cannot form a mental model of where things live cannot reason about them. If `find . -type f | wc -l` returns more than the team can navigate, the project needs structural triage first.
+- **Non-standard version control.** Agents assume git semantics — branches, commits, history, working trees. Projects on Perforce, ClearCase, or other legacy systems will see agent behaviour degrade in ways that are not fixable through configuration.
+- **Deeply interconnected cross-directory dependencies with no module boundary.** When any file can import from any other file, there is no boundary for an agent to respect or for a rule to enforce.
+- **Generated or binary assets mixed with source code.** When generated code, vendored libraries, and source live in the same directory tree without separation, agents will read generated code as if it were canonical and produce output that follows generator conventions rather than project conventions.
+- **Hundreds of thousands of top-level folders.** A flat, high-cardinality root defeats every orientation strategy an agent can apply.
+
+These conditions are signals that a project needs structural triage — module extraction, generated-content separation, migration to standard version control — before agent work is viable at any tier.
 
 ---
 
@@ -194,7 +212,7 @@ Agents that lack operational context will write code that is locally correct but
 |---|---|---|---|---|
 | 1.11a | T2 | Environment variables documented | A committed `.env.example` or `docs/environment.md` listing every variable, its purpose, its format, and whether it is required or optional | `PAYMENTS_API_BASE_URL` - base URL for the payments provider; required in production, defaults to `http://localhost:8080` in development |
 | 1.11b | T2 | External service dependencies documented | Third-party APIs, managed services, and external integrations documented with their authentication approach, rate limits, known quirks, and sandbox/production distinction | "The shipping API requires an API key header in production, has a sandbox environment, and enforces a rate limit of 10 requests per second" |
-| 1.11c | T2 | Observability infrastructure documented | Tracing, metrics, and structured logging tooling documented in `AGENTS.md` with guidance on when to instrument new code | "All new service methods should emit a trace span; use the project's tracing helper in Rust or the `Tracer` service in PHP" |
+| 1.11c | T2 | Observability infrastructure documented | Tracing, metrics, and structured logging tooling documented in `AGENTS.md` with guidance on when to instrument new code; where an observability platform is reachable through MCP, declare it in the MCP inventory at 2.2g | "All new service methods should emit a trace span; use the project's tracing helper in Rust or the `Tracer` service in PHP; Sentry MCP is connected for error lookup, see 2.2g" |
 
 ### 1.12 File Length
 
@@ -222,6 +240,10 @@ This applies to both source files and to the orientation documents (`AGENTS.md`,
 | 2.1e | T2 | Canonical data and API contracts | A committed OpenAPI spec, schema file, or shared type layer that is authoritative; manifest and `AGENTS.md` both reference it explicitly | OpenAPI spec at `docs/api/openapi.yaml`; `schema.sql` committed and kept current with migrations |
 | 2.1f | T3 | Documentation as system of record | `docs/` is the authoritative knowledge base for everything that influences agent behaviour; CI validates structure and cross-links; a recurring task scans for drift and opens fix-up PRs; knowledge that exists only in chat, external tools, or people's heads is invisible to agents and must be encoded into the repository | A background agent that checks documented behaviours against actual code weekly and opens correction PRs for any content it finds to be stale or inaccurate |
 | 2.1g | T1 | Named architectural pattern | `ARCHITECTURE.md` names the pattern in use from a recommended shortlist (or declares "project-specific" with rationale), lists the layers or ports, and states the dependency-direction rule that 1.6c will enforce; pattern choice should be drawn from the ranked shortlist below | "Ports-and-adapters. Domain core in `src/domain/`, primary adapters in `src/api/`, secondary adapters in `src/infra/`. Domain has no imports from `api/` or `infra/`." |
+| 2.1h | T2 | Hierarchical context files | Subdirectory `AGENTS.md` or `CLAUDE.md` files cover local conventions for deep or specialised areas of the codebase; agents load them additively as they enter those subtrees, keeping the root file focused on the big picture; for monorepos see also 3.2a | `app/Payments/AGENTS.md` describes payment-specific conventions, gateway abstractions, and known caveats; the agent reads it when working in that subtree without polluting the root file |
+| 2.1i | T1 | Agent-visibility ignore file | A `.claudeignore`, `.agentignore`, or equivalent declares paths the agent should not load - generated code, lockfiles, binary assets, vendored dependencies; without this, agents waste context on noise and may treat generated artefacts as canonical source | `.claudeignore` excludes `dist/`, `build/`, `*.lock`, `vendor/`, `node_modules/`, and any path matching `**/__generated__/**` |
+| 2.1j | T2 | Codebase map | Where directory structure does not self-describe, a `docs/codebase-map.md` or equivalent provides a one-page guide from concept to filesystem location; distinct from `ARCHITECTURE.md`, which describes the system - the map describes where things live | A table listing each domain concept (orders, billing, notifications) and the directories that own it; updated whenever a new top-level concern is added |
+| 2.1k | T3 | Configuration freshness review | A documented cadence (every three to six months) for reviewing and pruning the agent configuration; constraints that compensated for past model limitations are removed, skills and sub-agents that are no longer used are archived, and obsolete rules are deleted | A quarterly review checklist that lists every file in `.claude/`, `RULES.md`, and `AGENTS.md` and asks whether each entry is still earning its keep against the current model |
 
 **Recommended pattern shortlist**, in approximate order of agent-friendliness (strongest boundaries first). Projects pick by fit, not by ranking:
 
@@ -239,9 +261,13 @@ This applies to both source files and to the orientation documents (`AGENTS.md`,
 | 2.2a | T1 | `AGENTS.md` / `CLAUDE.md` | Root-level file covering project purpose, stack, conventions, directory ownership, and what the project does not do; treated as a living document updated with every structural change | Covers which directories own which concerns, known framework magic exceptions, links to `RULES.md` and the manifest, escape hatch conditions |
 | 2.2b | T1 | Coding rules | `RULES.md` or inline in `AGENTS.md`; specific enough that two agents produce consistent output independently | "Never unwrap in library code", "all models must declare assignable fields explicitly", "all public functions must have doc comments" |
 | 2.2c | T3 | `AGENTS.md` as index, not encyclopedia | `AGENTS.md` is kept short (around 100 lines) and acts as a table of contents pointing into `docs/`; all convention detail, operational context, and external dependency information lives in the structured `docs/` tree; a monolithic `AGENTS.md` crowds out task context, makes everything equally important, and rots because it cannot be mechanically validated | `AGENTS.md` contains project purpose, stack summary, directory layout, escape hatch conditions, and links to deeper documents — nothing else |
-| 2.2d | T3 | Sub-agent library | `agents/` or `.claude/agents/` directory with one file per sub-agent, each with a single well-scoped responsibility | `migration-writer.md`, `test-generator.md`, `openapi-updater.md` |
+| 2.2d | T3 | Sub-agent library | `agents/` or `.claude/agents/` directory with one file per sub-agent, each with a single well-scoped responsibility; prefer pairs that split exploration from editing so an explorer sub-agent can return findings to a main agent without consuming its working context | `migration-writer.md`, `test-generator.md`, `openapi-updater.md`; a `repo-explorer.md` that maps an unfamiliar subsystem and returns a summary, leaving the main agent's context free to make the edit |
 | 2.2e | T3 | Skill set | `skills/` directory with runnable or instructable skill files covering common tasks; centralised across projects where possible | Release skill that bumps versions across project manifests, tags, and produces a changelog |
 | 2.2f | T1 | Context-file compactness | `AGENTS.md`, `RULES.md`, and `ARCHITECTURE.md` each stay below 200 lines; when content exceeds that, the main file becomes an index referencing modular sub-files; an agent that has to scroll past 200 lines to find what it needs will skim or truncate | `RULES.md` splits into `rules/php.md`, `rules/typescript.md`, `rules/naming.md`, with the root `RULES.md` as a one-page index; the T3 rule 2.2c then tightens `AGENTS.md` further to around 100 lines |
+| 2.2g | T2 | MCP server inventory | `AGENTS.md` lists every MCP server expected to be connected for normal agent work on this project - issue tracker, internal API gateway, observability platform, documentation system - with the purpose of each and installation instructions; without this inventory, agents that depend on internal context will work blind or fabricate | "Required MCP servers: Linear MCP (ticket lookup), Sentry MCP (error context), internal docs MCP (search engineering wiki); install via `claude mcp install ...`" |
+| 2.2h | T3 | Harness configuration as artefact | A `.claude/` or `.agents/` directory is committed to the repository declaring the expected hooks, sub-agents, skills, and MCP server configuration as code; the configuration travels with the project rather than depending on each developer's local setup | `.claude/hooks.json`, `.claude/agents/`, `.claude/skills/`, and `.claude/mcp.json` all committed and version-controlled; a new contributor running `claude` in the repo gets the same configuration as everyone else |
+| 2.2i | T3 | Reflective configuration updates | A Stop hook or equivalent reviews each agent session and proposes updates to `AGENTS.md` or `RULES.md` where the session revealed a missing convention; the agent surfaces the proposal for human approval and does not silently rewrite its own rules | A Stop hook that scans the session for repeated user corrections on the same topic and opens a PR adding the relevant rule to `RULES.md`, tagged for the configuration owner to review |
+| 2.2j | T3 | Plugin / distribution layer (optional) | Where multiple projects share a common harness configuration, the configuration is packaged as a plugin or installable bundle so it can be distributed across repositories without tribal-knowledge drift; marked optional because not every organisation operates at this scale | An internal plugin published to a managed marketplace, installed by every project in the organisation, providing the shared sub-agents, skills, and hooks; project-specific configuration extends the plugin rather than replacing it |
 
 ### 2.3 Verify
 
@@ -251,6 +277,8 @@ This applies to both source files and to the orientation documents (`AGENTS.md`,
 | 2.3b | T2 | Reproducible environment | `Dockerfile`, `.devcontainer/`, or a `Makefile` with standard targets the agent can run without knowing the host environment | `make test`, `make lint`, `make build` - agent runs these and treats the result as ground truth |
 | 2.3c | T2 | Trusted test surface | Tests covering critical system contracts; a green result must be genuine signal that behaviour is correct | Checkout response shape tests rather than unit tests on internal formatting helpers |
 | 2.3d | T3 | Architectural invariants enforced by CI | Architectural rules from `RULES.md` are encoded as custom linters or structural tests in CI; a rule that exists only in a document can be ignored by an agent that has not read it or has been given conflicting signal from the code; lint error messages include remediation instructions so an agent that triggers a check is told how to fix it, not just that it failed | A custom lint enforcing layer dependency direction with an error message reading "move this logic into a service — see docs/DESIGN.md#layers"; a structural test asserting no file in `app/Http/` contains a direct database query |
+| 2.3e | T2 | Language Server Protocol available | An LSP server for each primary language is documented and installable; setup instructions ensure agents can use symbol-precise navigation rather than string-based grep; critical for languages where symbol names collide across files (C, C++, Java) and useful for any codebase past a few hundred files | `AGENTS.md` declares "this project uses `gopls` / `tsserver` / `phpactor`; install via `make setup-lsp`"; agents searching for a function by name follow the call to its definition rather than matching every occurrence of the string |
+| 2.3f | T3 | Deterministic enforcement hooks | Linting, formatting, and structural checks run as hooks (pre-commit, pre-edit, pre-write) so the agent cannot ship code that violates them; complements 2.3d by enforcing at the point of edit rather than at PR time, closing the feedback loop tighter | A pre-write hook runs `eslint --fix` and `phpstan analyse` on every file the agent touches; failures block the write and surface the error message back to the agent for immediate correction |
 
 ### 2.4 Escalate
 
@@ -260,6 +288,7 @@ This applies to both source files and to the orientation documents (`AGENTS.md`,
 | 2.4b | T1 | Defined escape hatches | A section in `AGENTS.md` listing specific conditions that require human approval before the agent proceeds | "Stop if a migration drops a column", "stop if a new dependency is required", "stop if the change touches `auth/` or `billing/`" |
 | 2.4c | T1 | Change isolation strategy | Documented conventions in `AGENTS.md` or `CONTRIBUTING.md` giving the agent a natural unit-of-work boundary | "One logical change per branch", "conventional commits", "PRs must not exceed 400 lines unless mechanical" |
 | 2.4d | T3 | Agent output review standard | A section in `CONTRIBUTING.md` defining what reviewers should check specifically when reviewing agent-authored changes, distinct from human-authored changes | "Agent PRs must include a summary of what the agent was asked to do; reviewer must verify no files outside the stated scope were modified" |
+| 2.4e | T3 | Organisational ownership | A named person or team owns the project's agent configuration as a DRI; documented in `AGENTS.md` so contributors know whom to contact when configuration breaks or evolves, and so the freshness review at 2.1k has an accountable owner | `AGENTS.md` states "Agent configuration owner: @platform-dx team; questions to #agent-platform on Slack"; the owner is responsible for the quarterly freshness review |
 
 ---
 
@@ -280,7 +309,7 @@ Projects using a monorepo layout must satisfy everything in Parts 1 and 2 and ad
 
 | ID | Tier | Requirement | How to satisfy | Example |
 |---|---|---|---|---|
-| 3.2a | T1 | Package-level `AGENTS.md` | Each service or package has its own `AGENTS.md` that inherits from the root but overrides anything specific to that context | `services/api/AGENTS.md` covering API conventions and which packages are in scope |
+| 3.2a | T1 | Package-level `AGENTS.md` | Each service or package has its own `AGENTS.md` that inherits from the root but overrides anything specific to that context; this is the monorepo manifestation of the hierarchical context pattern at 2.1h, made mandatory because monorepo packages have distinct conventions that single-repo subdirectories may not | `services/api/AGENTS.md` covering API conventions and which packages are in scope |
 | 3.2b | T1 | Package-level coding rules | Rules that apply only within a given package live close to that package, not in the root | Backend-specific rules in `services/api/RULES.md`; frontend rules in `apps/web/RULES.md` |
 | 3.2c | T3 | Scoped sub-agents | Shared sub-agents live at the root; package-specific sub-agents live inside the package | A `migration-writer.md` sub-agent inside `services/api/agents/` that knows the service schema |
 | 3.2d | T3 | Shared library governance | Packages that multiple services depend on must be declared as shared; the manifest or a dedicated document should declare who owns them and what the change process is; agents must never modify a shared library without flagging it as a cross-boundary change | A `SHARED.md` listing shared packages, their owners, and the requirement that any change to a shared package must be reviewed by all consuming service owners |
@@ -328,6 +357,7 @@ A project reaches each tier when all items for that tier are true. A project is 
 - [ ] **1.12a** `RULES.md` declares per-language source-file size budgets and oversized files are split or justified
 - [ ] **2.1b** `ARCHITECTURE.md` exists, is current, and includes a diagram
 - [ ] **2.1g** `ARCHITECTURE.md` names an architectural pattern from the shortlist (or declares "project-specific" with rationale and dependency-direction rule)
+- [ ] **2.1i** A `.claudeignore` / `.agentignore` (or equivalent) is committed and excludes generated, binary, and vendored content
 - [ ] **2.2a** `AGENTS.md` or `CLAUDE.md` exists at the root, is current, and covers all required sections
 - [ ] **2.2b** `RULES.md` exists and is specific enough to produce consistent output across agents
 - [ ] **2.2f** Each of `AGENTS.md`, `RULES.md`, `ARCHITECTURE.md` is under 200 lines or split into modular sub-files
@@ -358,17 +388,27 @@ A project reaches each tier when all items for that tier are true. A project is 
 - [ ] **2.1c** Documentation follows an established schema with a top-level index
 - [ ] **2.1d** A machine-readable project manifest exists at the root
 - [ ] **2.1e** Canonical data and API contracts are committed and referenced from the manifest and `AGENTS.md`
+- [ ] **2.1h** Deep or specialised subdirectories carry their own `AGENTS.md` / `CLAUDE.md` files for local conventions
+- [ ] **2.1j** A `docs/codebase-map.md` (or equivalent) exists where directory structure does not self-describe
+- [ ] **2.2g** `AGENTS.md` lists every MCP server expected for normal agent work with its purpose and install instructions
 - [ ] **2.3b** A reproducible environment exists with standard runnable targets
 - [ ] **2.3c** Test surface covers critical contracts and a green result is genuine signal
+- [ ] **2.3e** An LSP server for each primary language is documented and installable
 
 ### Tier 3 - Higher autonomy
 
 - [ ] **2.1f** `docs/` is treated as the system of record; documentation freshness is mechanically enforced via CI and a recurring cleanup task
+- [ ] **2.1k** A documented cadence (3-6 months) exists for reviewing and pruning agent configuration
 - [ ] **2.2c** `AGENTS.md` is short (around 100 lines), acts as an index, and points to a structured `docs/` knowledge base rather than inlining all conventions and context
-- [ ] **2.2d** Sub-agent library exists with single-responsibility files
+- [ ] **2.2d** Sub-agent library exists with single-responsibility files, including at least one explorer/editor split
 - [ ] **2.2e** Skill set exists covering at minimum the release workflow
+- [ ] **2.2h** A committed `.claude/` or `.agents/` directory declares hooks, sub-agents, skills, and MCP configuration as code
+- [ ] **2.2i** A Stop hook (or equivalent) proposes `AGENTS.md` / `RULES.md` updates from session reflections for human approval
+- [ ] **2.2j** Where shared across projects, harness configuration is packaged as a plugin or installable bundle (optional)
 - [ ] **2.3d** Architectural invariants from `RULES.md` are encoded as CI linters or structural tests with agent-readable error messages that include remediation instructions
+- [ ] **2.3f** Lint, format, and structural checks run as pre-edit / pre-commit hooks that block non-conforming writes
 - [ ] **2.4d** Agent output review standard is documented in `CONTRIBUTING.md`
+- [ ] **2.4e** A named person or team is documented in `AGENTS.md` as the DRI for agent configuration
 
 ### Tier 1 - Monorepo additions
 

@@ -213,28 +213,6 @@ The check should always run against the full branch diff, not just the most rece
 
 ---
 
-## Phase 5: Tier 3 Pre-Check (optional)
-
-For projects targeting Tier 3, run the following additional checks before passing the change. These do not block at Tier 0–2 but should be surfaced as warnings.
-
-**Agent configuration ownership (framework rule 2.4e)**
-
-Check: does `AGENTS.md` declare a named person or team as the DRI for agent configuration?
-
-Look for a section headed "Agent configuration owner", "Configuration owner", "Maintainers", or equivalent that names a specific person, team, or Slack channel.
-
-If absent at Tier 3: **WARNING** — escalation rules cannot be governed without an owner. Recommend adding a DRI before relying on the escape hatch process at Tier 3.
-
-**Harness configuration committed (framework rule 2.2h)**
-
-Check: does the project have a committed `.claude/` or `.agents/` directory declaring hooks, sub-agents, skills, and MCP configuration?
-
-If absent at Tier 3: **WARNING** — without committed harness configuration, escalation behaviour depends on each developer's local setup and cannot be relied on.
-
-Both warnings are advisory at this stage; they become hard requirements only once the project is operating at Tier 3 autonomy.
-
----
-
 ## Escalation Conditions for This Skill
 
 This skill itself should escalate if:
@@ -242,4 +220,3 @@ This skill itself should escalate if:
 - `AGENTS.md` and `RULES.md` both exist but contain no escape hatch section — flag this as a gap rather than silently applying defaults
 - The escape hatch conditions in the two files contradict each other — flag the contradiction rather than picking one
 - The change is so large that it cannot be evaluated as a unit — flag this as a scope issue
-- The project declares itself as Tier 3 but no agent configuration owner is named in `AGENTS.md` (framework rule 2.4e) — flag this before the change is accepted
