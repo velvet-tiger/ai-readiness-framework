@@ -33,16 +33,23 @@ If neither file exists, stop immediately:
 
 > **ESCALATION REQUIRED**: This project has no `AGENTS.md` or `RULES.md`. Escape hatch conditions are not defined. Cannot proceed without human guidance. Consider running the `ai-readiness-scaffold` skill first.
 
-If the files exist but contain no escape hatch section, treat the following as the default minimum set:
+If the files exist but contain no escape hatch section, treat the following as the default minimum set (this is the skill's own fallback, not a framework-mandated list — surface it as such in the report so the user knows the project should declare its own):
 
 ```
-- The change requires adding or removing a dependency
-- The change modifies a database migration destructively (dropping columns, changing types, removing indexes)
-- The change affects more than the stated scope of the task
-- The correct pattern is genuinely ambiguous
+- T0 (2.4a)  The change touches a restricted directory or file declared in AGENTS.md
+- T1 (2.4b)  The change requires adding or removing a dependency
+- T1 (2.4b)  The change modifies a database migration destructively (dropping columns,
+             changing types, removing indexes)
+- T1 (2.4b)  The change touches code in any sensitive functional area named by the
+             framework as a default escape hatch example: authentication, authorisation,
+             billing, or money movement
+- T1 (2.4b)  The change affects more than the stated scope of the task
+- T1 (2.4c)  The branch contains more than one logical change, or the diff exceeds the
+             project's declared PR-size limit (default: 400 lines)
+- T1 (2.4b)  The correct pattern is genuinely ambiguous
 ```
 
-Collect all conditions into a list. Each condition should be a clear, checkable predicate.
+Collect all conditions into a list. Each condition should be a clear, checkable predicate. Tag each one with the framework rule it derives from so the user can see which tier-level concern it covers.
 
 ---
 
@@ -145,6 +152,20 @@ Flag it if: the change introduces a new pattern that does not clearly match any 
 
 ---
 
+**"The branch contains more than one logical change, or the diff exceeds the PR-size limit" (framework rule 2.4c)**
+
+Check the project's declared change-isolation rules in `AGENTS.md` (the "Change Isolation" section). If none are declared, fall back to the default: one logical change per branch, 400 lines maximum unless the change is purely mechanical (renames, formatting, generated-file updates).
+
+Evaluate:
+- Count the total non-mechanical changed lines in the diff (`git diff [base]...HEAD --stat`, then subtract lockfile, snapshot, and generated-file deltas)
+- Scan the diff topology: does it span unrelated concerns (e.g. a feature change plus an unrelated refactor)?
+- Check for mixed commit types in the branch's history (e.g. `feat:` plus `refactor:` plus `chore:` in the same branch)
+
+If the diff is over the size limit and is not purely mechanical: **TRIGGERED**
+If the branch mixes unrelated concerns: **POSSIBLY TRIGGERED** — describe which subsets should be separate branches.
+
+---
+
 ## Phase 4: Report
 
 ### If any condition is TRIGGERED or POSSIBLY TRIGGERED
@@ -231,7 +252,15 @@ Check: does the project have a committed `.claude/` or `.agents/` directory decl
 
 If absent at Tier 3: **WARNING** — without committed harness configuration, escalation behaviour depends on each developer's local setup and cannot be relied on.
 
-Both warnings are advisory at this stage; they become hard requirements only once the project is operating at Tier 3 autonomy.
+**Agent output review standard (framework rule 2.4d)**
+
+Check: does `CONTRIBUTING.md` (or the project's contribution guide) declare what reviewers should check specifically on agent-authored PRs, distinct from the standard for human-authored changes?
+
+Look for a section headed "Reviewing agent PRs", "Agent-authored changes", "AI-generated code", or equivalent that names review concerns particular to agent output (e.g. scope creep, fabricated dependencies, silent file moves outside the stated task).
+
+If absent at Tier 3: **WARNING** — without a declared review standard, reviewers handle agent PRs the same as human PRs, missing the failure modes specific to agent-generated code. Recommend adding the section before relying on agent autonomy at Tier 3.
+
+All three warnings are advisory at this stage; they become hard requirements only once the project is operating at Tier 3 autonomy.
 
 ---
 

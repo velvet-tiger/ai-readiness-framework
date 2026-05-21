@@ -87,7 +87,7 @@ Identify the pattern in use so it can be named in the output (framework requirem
 
 If the pattern cannot be inferred from inspection, stop and ask the user to pick from the shortlist below. Do not guess — a wrongly-named pattern misleads every later audit.
 
-**Pattern shortlist** (in framework's order of preference for agent-friendliness):
+**Pattern shortlist** — listed in approximate order of agent-friendliness (strongest boundary enforcement first). Pick by fit with the codebase, not by ranking. A correctly-applied "layered" or "vertical slice" pattern is far better than a hexagonal pattern crow-barred onto a codebase that does not support it.
 
 1. **Hexagonal / ports-and-adapters** — domain core has no infrastructure imports; adapters depend on domain.
 2. **Clean architecture** — formalised hexagonal with explicit use-case layer.
@@ -114,13 +114,19 @@ business function it supports?]
 
 [State the pattern in use, drawn from the framework shortlist: hexagonal / ports-and-adapters,
 clean, layered, vertical slice, MVC, or project-specific. One paragraph naming the layers or
-ports and stating the dependency-direction rule that boundary-audit and 1.6c will enforce.]
+ports and stating the dependency-direction rule that boundary-audit and 1.6c will enforce.
+
+Also name the tool or test that will enforce the dependency-direction rule at Tier 2 (1.6c):
+`deptrac` for PHP, `dependency-cruiser` for JavaScript/TypeScript, `ArchUnit` for Java/Kotlin,
+`import-linter` for Python, an import-graph test in Rust, or equivalent. If no tool is yet
+configured, mark the slot with a TODO so this entry can be filled when 1.6c is satisfied.]
 
 **Example:**
 
 > Ports-and-adapters. Domain core in `src/domain/`, primary adapters in `src/api/`, secondary
 > adapters in `src/infra/`. Domain has no imports from `api/` or `infra/`. Infra depends on
-> domain only.
+> domain only. Enforced by `dependency-cruiser` configuration at `.dependency-cruiser.cjs`,
+> run in CI.
 
 ## Components
 

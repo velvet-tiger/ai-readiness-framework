@@ -22,6 +22,22 @@ This skill addresses a core problem: agents produce consistent output only when 
 
 ---
 
+## Phase 0: Defer to Mechanical Enforcement Where It Exists
+
+If the project has mechanical enforcement of its conventions, run that first and treat its output as authoritative. The manual checks below exist to catch what the tooling cannot, not to duplicate it.
+
+Look for and run, in order:
+
+1. **Pre-commit / pre-edit / pre-write hooks** (framework rule **2.3f**, Tier 3) — `.pre-commit-config.yaml`, `.husky/`, `.git/hooks/`, `.claude/hooks.json`. If hooks exist, run them against the changed files (`pre-commit run --files <paths>` or the project's equivalent). Failures are convention violations; report them with the same severity as findings from the manual checks.
+2. **CI lints and structural tests** (framework rule **2.3d**, Tier 3) — `phpstan.neon`, `eslint.config.*`, `.deptrac.yaml`, `dependency-cruiser.cjs`, `archunit` test files. Run the relevant subset against the changed files. Architectural-invariant failures (boundary violations from a structural test) are the strongest signal available — treat them as blockers.
+3. **Language compiler / type checker** — `tsc --noEmit`, `cargo check`, `phpstan analyse`, `mypy`. If the project uses one, run it on the changed files before doing manual checks.
+
+If none of these exist, note that explicitly in the final report — the project relies entirely on manual review for convention adherence, which is a Tier 1/2 gap (2.3d, 2.3f) the user may want to close.
+
+If tooling exists but is broken or skipped, stop and surface that — running the manual check while pretending the broken tool is fine produces a false-clean report.
+
+---
+
 ## Phase 1: Load Conventions
 
 Read `RULES.md` in full. Extract the rules into categories:

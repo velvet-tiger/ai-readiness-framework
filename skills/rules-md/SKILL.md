@@ -345,6 +345,19 @@ Declare per-category source-file size budgets (framework rules 1.12a and 1.12b).
 
 ---
 
+### Monorepo Scoping (if applicable)
+
+Framework rule **3.2b (Tier 1, monorepo)** requires rules that apply only inside one package to live close to that package, not at the root. If the project is a monorepo:
+
+- The root `RULES.md` holds only the rules that genuinely apply to every package — naming bans, escalation policy, file-length budgets, anything stack-agnostic
+- Each package directory holds its own scoped `RULES.md` (e.g. `services/api/RULES.md`, `apps/web/RULES.md`) covering the rules specific to that package's language, framework, layer structure, and test style
+- A package-level `RULES.md` does not need to repeat the root — it extends and overrides
+- Where a rule applies to two packages but not all of them, put it in the closest common ancestor's `RULES.md`, not at the root
+
+For single-repo projects this section is not needed and should be omitted entirely.
+
+---
+
 ### Escalate — Stop and Ask When
 
 Mirror the escape hatch conditions from `AGENTS.md`. These should be identical.
@@ -378,7 +391,7 @@ Before finishing, verify:
 - [ ] The logging section names the actual logger and required fields
 - [ ] The escalation conditions match those in `AGENTS.md`
 - [ ] No rule is so broad it provides no guidance (e.g. "write clean code", "use good names")
-- [ ] The file is under 200 lines (framework rule 2.2f); if longer, content is split into `rules/<topic>.md` sub-files with the root `RULES.md` as an index
+- [ ] The file is under 200 lines (framework rule 2.2f); if longer, content is split into sub-files with the root `RULES.md` acting as an index. Prefer language-scoped splits (`rules/php.md`, `rules/typescript.md`) for multi-language projects, naming-and-shared concerns at `rules/naming.md`, and topic-scoped splits (`rules/error-handling.md`, `rules/logging.md`) where one language dominates. Pick one axis — do not mix language and topic splits in the same project
 
 ---
 

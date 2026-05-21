@@ -183,6 +183,8 @@ Look for functions that:
 
 ## Remediation
 
+> **When introducing log calls** as part of a fix (e.g. log-and-rethrow, or logging a declined card), follow the project's logging rules from `RULES.md` (framework 1.9a, 1.9b, 1.9c): use the established logger only, emit the required structured fields, and pick the log level whose declared semantics match the situation. A typed error path that logs at the wrong level or omits the required fields produces structurally inconsistent output and undoes part of the gain from this audit.
+
 ### Fix: Empty Catch Block
 
 Option A — the exception should propagate:

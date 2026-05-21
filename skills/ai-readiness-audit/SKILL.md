@@ -9,7 +9,8 @@ description: "Audit a project against the AI Readiness Framework and produce a p
 
 Systematically evaluates a project against the AI Readiness Framework checklist and produces a structured gap report showing:
 
-- Which tier the project currently satisfies (Tier 1 / Tier 2 / Tier 3 / None)
+- Whether the project displays any **fundamentally hostile patterns** that block tier work entirely
+- Which tier the project currently satisfies (None / Tier 0 / Tier 1 / Tier 2 / Tier 3)
 - Which specific requirements are missing or incomplete
 - A prioritised remediation plan ordered by impact and tier
 
@@ -22,16 +23,41 @@ The four capabilities being assessed are: **Orient** (can an agent understand th
 Run this skill at the root of any project:
 
 1. Read the project root directory listing
-2. Work through the checklist below section by section
-3. Output a gap report using the format at the end of this skill
+2. Run the **Fundamentally Hostile Patterns** pre-check; if any are present, stop and report — tier assessment is meaningless until they are addressed
+3. Work through the tier checklists below section by section, starting at Tier 0
+4. Output a gap report using the format at the end of this skill
+
+---
+
+## Pre-check: Fundamentally Hostile Patterns
+
+Some patterns make a codebase agent-hostile in a way that tier work cannot fix. If any of the following are present, stop the audit and report them — no amount of `AGENTS.md` writing or rule tuning will compensate.
+
+- [ ] **Millions of files without clear organisation** — if `find . -type f | wc -l` (excluding generated content, lockfiles, and vendored dependencies) returns more than the team can navigate, the project needs structural triage first
+- [ ] **Non-standard version control** — agents assume git semantics; projects on Perforce, ClearCase, or other legacy systems will see agent behaviour degrade in ways configuration cannot fix
+- [ ] **Deeply interconnected cross-directory dependencies with no module boundary** — when any file can import from any other file, there is no boundary for an agent to respect or for a rule to enforce
+- [ ] **Generated or binary assets mixed with source code** — when generated code, vendored libraries, and source live in the same directory tree without separation, agents will read generated code as canonical and reproduce its conventions
+- [ ] **Hundreds of thousands of top-level folders** — a flat, high-cardinality root defeats every orientation strategy an agent can apply
+
+If any item above is present, record it under a **Blocking Conditions** heading in the gap report and recommend structural triage (module extraction, generated-content separation, migration to standard version control) before proceeding to tier assessment.
 
 ---
 
 ## Audit Checklist
 
-Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
+Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**. Tiers are cumulative — Tier 1 assumes Tier 0 is satisfied, and so on.
 
-### Tier 1 — Guided Baseline
+### Tier 0 — Supervised
+
+The minimum needed for an agent to be pointed at the project without immediately producing harmful or useless output. A human reviews every change.
+
+- [ ] **2.1a** `AGENTS.md` or `CLAUDE.md` exists and states what the project does, what stack it uses, and which areas are off-limits
+- [ ] **2.3a** At least one runnable command exists that the agent can run to verify it has not broken the build or test suite, producing a clear pass or fail result
+- [ ] **2.4a** Restricted directories or files are explicitly declared in `AGENTS.md`
+
+---
+
+### Tier 1 — Guided
 
 #### Code Quality
 
@@ -80,7 +106,7 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 
 ---
 
-### Tier 2 — Safe Baseline
+### Tier 2 — Safe
 
 #### Code Quality
 
@@ -124,8 +150,9 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 #### Project Structure
 
 **2.1 Orient**
-- [ ] Documentation follows an established schema with a top-level index
-- [ ] A machine-readable project manifest exists at the root
+- [ ] **2.1c** Documentation follows an established schema with a top-level index
+- [ ] **2.1d** A machine-readable project manifest exists at the root
+- [ ] **2.1e** Canonical data and API contracts are committed (OpenAPI spec, schema file, or shared type layer) and referenced from both the manifest and `AGENTS.md`; absence means agents must infer contracts from code, which produces drift
 - [ ] **2.1h** Deep or specialised subdirectories carry their own `AGENTS.md` / `CLAUDE.md` files; sample 2-3 of the largest subtrees and check for a local context file where conventions differ from the root
 - [ ] **2.1j** A `docs/codebase-map.md` (or equivalent one-page concept-to-directory guide) exists where the directory structure does not self-describe; not required where directories are self-evidently named
 
@@ -139,17 +166,19 @@ Work through every item. Mark each as **PASS**, **FAIL**, or **PARTIAL**.
 
 ---
 
-### Tier 3 — Higher Autonomy
+### Tier 3 — Autonomous
 
-- [ ] `adr/` directory with at least one ADR per major structural decision
-- [ ] Sub-agent library (`agents/` or `.claude/agents/`) with single-responsibility files, including at least one explorer / editor split per framework rule 2.2d
-- [ ] Skill set covering at minimum the release workflow
-- [ ] Agent output review standard documented in `CONTRIBUTING.md`
+- [ ] **2.1f** `docs/` is treated as the system of record; documentation freshness is mechanically enforced via CI and a recurring cleanup task (e.g. a scheduled job or background agent that scans for stale content and opens correction PRs)
 - [ ] **2.1k** A documented cadence (every 3-6 months) exists for reviewing and pruning agent configuration; check for a review checklist, a calendar entry referenced in `AGENTS.md`, or a `docs/agent-config-review.md`
+- [ ] **2.2c** `AGENTS.md` is short (around 100 lines), acts as an index, and points into a structured `docs/` knowledge base rather than inlining all conventions; run `wc -l AGENTS.md` and inspect contents for evidence of indexing rather than encyclopaedic content
+- [ ] **2.2d** Sub-agent library (`agents/` or `.claude/agents/`) with single-responsibility files, including at least one explorer / editor split
+- [ ] **2.2e** Skill set covering at minimum the release workflow
 - [ ] **2.2h** A committed `.claude/` or `.agents/` directory declares hooks, sub-agents, skills, and MCP configuration as code; not relying on per-developer local setup
 - [ ] **2.2i** A Stop hook (or equivalent) proposes `AGENTS.md` / `RULES.md` updates from session reflections; check `.claude/hooks.json` or equivalent for a Stop-event hook that opens proposed updates rather than applying them silently
 - [ ] **2.2j** (optional) Where multiple projects share configuration, the configuration is packaged as a plugin or installable bundle
+- [ ] **2.3d** Architectural invariants from `RULES.md` are encoded as custom linters or structural tests in CI; lint error messages include remediation instructions (a pointer to the relevant rule or doc), not just a failure code
 - [ ] **2.3f** Lint, format, and structural checks run as pre-edit, pre-commit, or pre-write hooks that block non-conforming writes; check `.git/hooks`, `.pre-commit-config.yaml`, or `.claude/hooks.json`
+- [ ] **2.4d** Agent output review standard documented in `CONTRIBUTING.md`, distinct from the standard for human-authored changes
 - [ ] **2.4e** A named person or team is documented in `AGENTS.md` as the DRI for agent configuration; check the AGENTS.md for an "Agent configuration owner" or similar entry
 
 ---
@@ -193,9 +222,15 @@ Produce the gap report in this structure:
 ```
 ## AI Readiness Gap Report
 
-**Current Tier:** [None / Tier 1 / Tier 2 / Tier 3]
+**Current Tier:** [None / Tier 0 / Tier 1 / Tier 2 / Tier 3]
 **Assessed:** [date]
 **Monorepo:** [Yes / No]
+
+---
+
+### Blocking Conditions
+
+[Only include this section if any Fundamentally Hostile Patterns were found. List each, with the recommended structural-triage action. If this section is present, tier assessment below is provisional — the blocking conditions must be addressed before tier work is meaningful.]
 
 ---
 
@@ -207,36 +242,41 @@ Produce the gap report in this structure:
 
 ### Failing Items
 
-#### Tier 1 Gaps (must fix first)
+#### Tier 0 Gaps (must fix first — without these the agent has no foothold)
 
-| # | Area | Requirement | Finding |
-|---|------|-------------|---------|
-| 1 | [area] | [requirement] | [what is missing or wrong] |
+| # | ID | Requirement | Finding |
+|---|----|-------------|---------|
+| 1 | [ID] | [requirement] | [what is missing or wrong] |
+
+#### Tier 1 Gaps
+
+| # | ID | Requirement | Finding |
+|---|----|-------------|---------|
 
 #### Tier 2 Gaps
 
-| # | Area | Requirement | Finding |
-|---|------|-------------|---------|
+| # | ID | Requirement | Finding |
+|---|----|-------------|---------|
 
 #### Tier 3 Gaps
 
-| # | Area | Requirement | Finding |
-|---|------|-------------|---------|
+| # | ID | Requirement | Finding |
+|---|----|-------------|---------|
 
 ---
 
 ### Remediation Plan
 
-Ordered by priority (Tier 1 first, then by effort within tier):
+Ordered by priority (lowest tier first, then by effort within tier):
 
-1. **[Requirement]** — [Specific action to take] — [Estimated effort: low/medium/high]
+1. **[ID — Requirement]** — [Specific action to take] — [Estimated effort: low/medium/high]
 2. ...
 
 ---
 
 ### Passing Items
 
-[Brief list of what is already in good shape]
+[Brief list of what is already in good shape, grouped by tier]
 ```
 
 ---

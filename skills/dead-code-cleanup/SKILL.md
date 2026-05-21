@@ -21,15 +21,19 @@ Dead code is actively harmful to agents. They read it as valid signal, attempt t
 
 Work through the three phases in order. Do not mix them — complete one before starting the next.
 
-1. **Phase 1**: Find and remove commented-out code (safest, clearest wins)
-2. **Phase 2**: Find and remove resolved feature flags
-3. **Phase 3**: Find and remove unused code (requires more care)
+1. **Phase 1**: Find and remove commented-out code — framework rule **1.5b (Tier 1)**, safest, clearest wins
+2. **Phase 2**: Find and remove unused code — framework rule **1.5a (Tier 1)**, requires more care than Phase 1
+3. **Phase 3**: Find and remove resolved feature flags — framework rule **1.5c (Tier 2)**, depends on environment context
+
+Phases 1 and 2 are Tier 1 prerequisites; complete both before Phase 3. The framework forbids skipping tiers — do not attempt the Tier 2 feature-flag work in a codebase that still has commented-out blocks or unused declarations cluttering the live code.
 
 Commit after each phase. Small, focused commits make review easier and reduce risk.
 
 ---
 
 ## Phase 1: Commented-Out Code
+
+Framework rule **1.5b (Tier 1)**.
 
 ### What to Look For
 
@@ -67,7 +71,74 @@ Legitimate comment patterns to leave in place:
 
 ---
 
-## Phase 2: Resolved Feature Flags
+## Phase 2: Unused Code
+
+Framework rule **1.5a (Tier 1)**.
+
+### What to Look For
+
+Code that is defined but never called, referenced, or imported:
+
+- Functions and methods with no callers
+- Classes with no instantiations or references
+- Variables declared but never read
+- Parameters accepted but never used
+- Imports of modules that are not used in the file
+- Constants defined but never referenced
+
+### How to Find Them
+
+**Use static analysis tools appropriate to the language.** Do not rely solely on text search.
+
+| Language | Tools |
+|----------|-------|
+| PHP | PHPStan (`--level=6` or higher), Psalm |
+| TypeScript / JavaScript | TypeScript compiler (`noUnusedLocals`, `noUnusedParameters`), ESLint (`no-unused-vars`) |
+| Rust | `cargo check` for unused items in source; `cargo +nightly udeps` for unused crate dependencies (framework cites this directly at 1.5a) |
+| Python | `pylint`, `vulture`, `pyflakes` |
+| Go | `go vet`, `staticcheck` |
+| Ruby | `rubocop`, `debride` |
+
+Run the tool and collect the full output before making any changes.
+
+### Priority Order
+
+Work from lowest risk to highest:
+
+1. **Unused imports** — safe to remove; no behaviour change
+2. **Unused local variables** — safe to remove; no behaviour change
+3. **Unused private methods** — safe to remove; not accessible outside the class
+4. **Unused private classes** — safe to remove; not accessible outside the module
+5. **Unused public methods** — requires checking for dynamic dispatch, reflection, or external callers (see caution below)
+6. **Unused public classes** — same caution as public methods
+
+### Caution: Public API and Dynamic Dispatch
+
+Do not remove a public method or class without first checking:
+
+- Is it called via reflection, `call_user_func`, `method_exists`, or equivalent dynamic dispatch?
+- Is it part of an interface or abstract class contract?
+- Is it in a library that is consumed by other packages outside this repository?
+- Is it a framework hook that the framework calls by convention (e.g. `boot()`, `register()`, `handle()`)?
+- Is it used in a template, view, or configuration file (not always caught by code-level search)?
+
+If any of these are true, do not delete without confirming.
+
+### What to Do
+
+Delete unused code entirely. Do not comment it out — that creates the same problem in a different form.
+
+For each deleted item:
+- Delete the definition
+- Delete any associated test that only tests the deleted code
+- Delete any documentation that only documents the deleted code
+- Check whether the deletion exposes further unused code (cascade)
+
+---
+
+## Phase 3: Resolved Feature Flags
+
+Framework rule **1.5c (Tier 2)**. Do not start this phase until Phases 1 and 2 are complete — the Tier 1 prerequisites must be in place first.
 
 ### What to Look For
 
@@ -141,72 +212,9 @@ Stop and ask if:
 
 ---
 
-## Phase 3: Unused Code
-
-### What to Look For
-
-Code that is defined but never called, referenced, or imported:
-
-- Functions and methods with no callers
-- Classes with no instantiations or references
-- Variables declared but never read
-- Parameters accepted but never used
-- Imports of modules that are not used in the file
-- Constants defined but never referenced
-
-### How to Find Them
-
-**Use static analysis tools appropriate to the language.** Do not rely solely on text search.
-
-| Language | Tools |
-|----------|-------|
-| PHP | PHPStan (`--level=6` or higher), Psalm |
-| TypeScript / JavaScript | TypeScript compiler (`noUnusedLocals`, `noUnusedParameters`), ESLint (`no-unused-vars`) |
-| Rust | `cargo check` — the compiler reports unused items |
-| Python | `pylint`, `vulture`, `pyflakes` |
-| Go | `go vet`, `staticcheck` |
-| Ruby | `rubocop`, `debride` |
-
-Run the tool and collect the full output before making any changes.
-
-### Priority Order
-
-Work from lowest risk to highest:
-
-1. **Unused imports** — safe to remove; no behaviour change
-2. **Unused local variables** — safe to remove; no behaviour change
-3. **Unused private methods** — safe to remove; not accessible outside the class
-4. **Unused private classes** — safe to remove; not accessible outside the module
-5. **Unused public methods** — requires checking for dynamic dispatch, reflection, or external callers (see caution below)
-6. **Unused public classes** — same caution as public methods
-
-### Caution: Public API and Dynamic Dispatch
-
-Do not remove a public method or class without first checking:
-
-- Is it called via reflection, `call_user_func`, `method_exists`, or equivalent dynamic dispatch?
-- Is it part of an interface or abstract class contract?
-- Is it in a library that is consumed by other packages outside this repository?
-- Is it a framework hook that the framework calls by convention (e.g. `boot()`, `register()`, `handle()`)?
-- Is it used in a template, view, or configuration file (not always caught by code-level search)?
-
-If any of these are true, do not delete without confirming.
-
-### What to Do
-
-Delete unused code entirely. Do not comment it out — that creates the same problem in a different form.
-
-For each deleted item:
-- Delete the definition
-- Delete any associated test that only tests the deleted code
-- Delete any documentation that only documents the deleted code
-- Check whether the deletion exposes further unused code (cascade)
-
----
-
 ## Commit Strategy
 
-Make one commit per category of change:
+Make one commit per category of change, in phase order:
 
 ```
 chore: remove commented-out code blocks
@@ -216,17 +224,17 @@ All deleted code is preserved in git history.
 ```
 
 ```
-chore: resolve permanently-enabled feature flags
-
-Inlined the live branch for flags: new_checkout, v2_api_enabled, stripe_v3.
-Deleted the dead legacy branches and their tests.
-```
-
-```
 chore: remove unused code identified by PHPStan
 
 Removed 8 unused private methods, 14 unused variables, and 3 unused imports.
 No behaviour change.
+```
+
+```
+chore: resolve permanently-enabled feature flags
+
+Inlined the live branch for flags: new_checkout, v2_api_enabled, stripe_v3.
+Deleted the dead legacy branches and their tests.
 ```
 
 ---

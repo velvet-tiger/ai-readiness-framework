@@ -25,9 +25,42 @@ If the file already exists, compare each required section against the spec below
 
 ---
 
+## Section Set by Tier
+
+The framework treats `AGENTS.md` as tier-progressive: a Tier 0 file is a few paragraphs; a Tier 3 file is a short index pointing into `docs/`. Do not push a Tier 0 project to author Tier 3 content — pick the section set that matches the project's current (or target) tier.
+
+| Section | T0 | T1 | T2 | T3 |
+|---|---|---|---|---|
+| 1. Project Purpose                    | required | required | required | required (short) |
+| 2. Stack                              | required | required | required | summary + link |
+| 3. Repository Layout                  | —        | required | required | summary + link |
+| 4. Key Conventions                    | —        | required | required | summary + link |
+| 5. Running the Project                | —        | required | required | one-line + link to manifest |
+| 6. Known Framework Magic (1.2b)       | —        | required | required | link to `docs/conventions/magic.md` |
+| 7. Escape Hatches                     | required (restricted areas only, 2.4a) | required (full, 2.4b) | required | required |
+| 8. Change Isolation (2.4c)            | —        | required | required | required |
+| 9. Out of Scope                       | —        | recommended | recommended | recommended |
+| 10. External Dependencies (1.11b)     | —        | —        | required | summary + link |
+| 11. Environment Variables (1.11a)     | —        | —        | required (link to `.env.example`) | link only |
+| 12. Observability (1.11c, 1.9c)       | —        | —        | required | summary + link |
+| 13. MCP Servers (2.2g)                | —        | —        | required | summary + link |
+| 14. Language Server (2.3e)            | —        | —        | required | one-line |
+| 15. Dependency Currency (1.10a, 1.10b)| —        | —        | required | link only |
+| 16. Agent Configuration Owner (2.4e)  | —        | —        | recommended | required |
+
+**T0 file** is typically 20–40 lines: purpose, stack, restricted areas, one runnable verification command. Nothing else.
+
+**T1 file** typically sits at 100–180 lines. Aim under 200 (framework rule 2.2f); if over, split into `docs/conventions/<topic>.md` linked from `AGENTS.md`.
+
+**T2 file** is the natural maximum size. Same 200-line ceiling. Use sub-files aggressively if a section grows past 30 lines.
+
+**T3 file** is a ~100-line index (framework rule 2.2c). Almost every section collapses to a one-sentence summary plus a link into a structured `docs/` tree. The full conventions, MCP inventory, observability guidance, and external-service docs live in `docs/`, and `AGENTS.md` exists to point at them — nothing more.
+
+---
+
 ## Required Sections
 
-Every `AGENTS.md` must contain all of the following sections. Each section must have real content — not generic placeholder text.
+Each section below shows its content and target tier. Sections marked `(T0)` are the minimum; everything else is added at the tier indicated above. Every included section must have real content — not generic placeholder text.
 
 ---
 
@@ -129,23 +162,39 @@ make lint       Run the linter
 make check      Run lint + test together
 ```
 
+**If a machine-readable manifest exists (framework rule 2.1d)**, link to it rather than restating its content:
+
+```
+The canonical command list and inter-service dependencies are declared in `project.json` at the
+repository root. The commands above are mirrored from that file; if the two disagree, the manifest
+is authoritative.
+```
+
+**If canonical data or API contracts exist (framework rule 2.1e)**, link to them so agents know which file is the source of truth for shapes and endpoints, rather than inferring contracts from controller code:
+
+```
+API contracts: `docs/api/openapi.yaml` — the OpenAPI spec is authoritative for request and
+response shapes. Database schema: `schema.sql` — kept current with migrations.
+```
+
 ---
 
-### 6. Known Framework Magic
+### 6. Known Framework Magic (framework rule 1.2b)
 
-**What to write:** Any non-obvious framework feature that changes how code works at runtime. Magic that is invisible at the call site must be explained here.
+**What to write:** Any non-obvious framework feature that changes how code works at runtime, plus any facade, static accessor, or global container that is exempted from the project's "no ambient dependencies" rule. Framework rule 1.2b requires that facades and static globals which agents are still permitted to use be documented here as known exceptions, with their scope.
 
 This is the single most important section for preventing agents from misunderstanding the codebase.
 
 Include:
-- Facades and what they resolve to
+- Facades and what they resolve to, plus the scope they may be used in (controllers only? anywhere? service classes never?)
 - Auto-wired or auto-discovered classes
 - Macros or mixins added to framework classes
 - Dynamic method dispatch (`__call`, `__get`)
 - Model casts and accessors
 - Middleware that modifies requests/responses invisibly
+- Any other ambient resolution (e.g. `app()`, `resolve()`, `container.get()`) that is permitted in this codebase, and where
 
-If there is no significant magic, write: `This project does not rely on significant framework magic.`
+If there is no significant magic, write: `This project does not rely on significant framework magic.` and confirm that no facades, static accessors, or container lookups appear in the codebase.
 
 **Example:**
 ```
@@ -292,7 +341,28 @@ If the project does not currently provide an LSP, mark it explicitly:
 
 ---
 
-### 15. Agent Configuration Owner (framework rule 2.4e)
+### 15. Dependency Currency (framework rules 1.10a, 1.10b)
+
+**What to write:** Any dependency that cannot be updated to its current version, and the reason. Agents will otherwise write code against the current public API documentation and produce calls that do not exist in the installed version.
+
+If every dependency is reasonably current, write: `All major dependencies are within one minor version of current. No pinned-back constraints.`
+
+If any dependency is pinned to an older major version, document each one:
+
+**Example:**
+```
+- `library-x` pinned to 2.x — 3.x introduces a breaking API change that requires a migration we
+  have not scheduled. Do not use the 3.x API patterns; the installed version is 2.7.4.
+- `framework-y` pinned to 10.x — upgrading to 11.x is tracked in [LINEAR-1234]; planned for Q3.
+  Use the 10.x patterns until then.
+- Node runtime pinned to 18 LTS — 20.x has not been validated against our deploy target.
+```
+
+This section covers 1.10a (dependencies are reasonably current) by documenting the gap when they are not, and 1.10b (known constraints are documented) directly.
+
+---
+
+### 16. Agent Configuration Owner (framework rule 2.4e)
 
 **What to write:** The named person or team that owns the agent configuration for this project. Required at Tier 3 and recommended at Tier 2 so contributors know whom to contact when configuration breaks.
 
@@ -360,14 +430,32 @@ Note that each service directory should have its own `AGENTS.md`. This root file
 
 Targets:
 
+- **T0 projects**: 20–40 lines.
 - **T1 and T2 projects**: under 200 lines (framework rule 2.2f).
-- **T3 projects**: around 100 lines (framework rule 2.2c) — the file becomes an index pointing to `docs/`.
+- **T3 projects**: around 100 lines (framework rule 2.2c) — the file is an *index*, not an encyclopedia. This is a hard structural shift, not a softer line count.
 
-When content would push the file over budget:
+### T3 collapse rules
 
-1. Move detailed convention text into `docs/conventions/<topic>.md` (or `RULES.md` sub-files) and replace the inline content with a one-line link.
-2. Move detailed external-service docs into `docs/integrations/<service>.md`.
-3. Keep in `AGENTS.md`: project purpose, stack summary, repository layout, escape hatches, links.
+At Tier 3 the file should contain, inline, only:
+
+- Project purpose (1–3 sentences)
+- Stack summary (a single bulleted list, no commands)
+- Repository layout (a short table)
+- Escape hatches (the conditions themselves, in full)
+- Change isolation (the conditions themselves, in full)
+- Agent configuration owner
+
+Every other section reduces to a one-sentence summary plus a link into `docs/`. If a section at T3 still spans more than three lines inline, it has not collapsed — move the body into a `docs/` page and replace it with the link. Specifically:
+
+- Key Conventions → `docs/conventions/` (one page per topic) or `RULES.md` sub-files
+- Known Framework Magic → `docs/conventions/magic.md`
+- External Dependencies → `docs/integrations/<service>.md` (one per service)
+- Observability → `docs/observability.md`
+- MCP Servers → `docs/agents/mcp.md` (or mirror `.claude/mcp.json`)
+- Language Server → `docs/agents/lsp.md` or the project's `setup` doc
+- Dependency Currency → `docs/dependencies.md`
+
+When working at lower tiers and content would push the file over the 200-line budget, apply the same splits early — the Tier 3 structure does not have to wait until Tier 3 to be useful.
 
 After writing or updating, count lines (`wc -l AGENTS.md`). If over budget, propose splits before finalising.
 
