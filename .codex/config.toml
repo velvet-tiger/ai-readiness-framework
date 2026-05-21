@@ -1,7 +1,0 @@
-[mcp_servers.automatic]
-command = "/Applications/Automatic.app/Contents/MacOS/automatic"
-args = ["mcp-serve"]
-
-[mcp_servers.automatic.env]
-AUTOMATIC_PROJECT = "ai-readiness-framework"
-

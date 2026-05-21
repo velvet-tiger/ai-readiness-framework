@@ -1,0 +1,10 @@
+.DS_Store
+.agents/
+.automatic/
+.claude/
+.codex/
+.opencode/
+.mcp.json
+opencode.json
+CLAUDE.md
+RULES.md
