@@ -23,7 +23,7 @@
       "description": "Audit a project against the AI Readiness Framework and produce a prioritised gap report by tier. Use when assessing a codebase for agent readiness, onboarding a project for AI agent work, checking which tier a project currently satisfies, or determining what must be fixed before running agents safely.",
       "category": "development",
       "tags": ["audit", "readiness", "agents", "assessment", "tiers"],
-      "integrity": "sha256-kwPaGsG+TmDwqwGF7oiIIdC68YxnnSA2GD2XXylXtxU="
+      "integrity": "sha256-X4LE+2wYgbpCrOJovtg5+p/NXNSBTxH791VmOV2qmfU="
     },
     {
       "name": "ai-readiness-scaffold",
@@ -39,7 +39,22 @@
         "rules-md",
         "architecture-md"
       ],
-      "integrity": "sha256-s+IBQAkDdMz/sR5i9PvfrAdL8Z/J2nAl61Y44v+2IPw="
+      "integrity": "sha256-rBpYeWlqkRuVbDPgBvlPqLx4AZo78fyVpbefx6fQBVU="
+    },
+    {
+      "name": "ai-readiness-recommendations",
+      "path": "./skills/ai-readiness-recommendations",
+      "description": "Turn an ai-readiness-audit gap report into a consultant-style remediation report with an executive summary, current-state diagnosis, strategic recommendations grouped by theme, a phased implementation roadmap, risks, and an appendix of item-by-item findings. Use after running ai-readiness-audit, when preparing a remediation report for a stakeholder, when planning work to reach a target tier, or when prioritising across a long backlog of gaps.",
+      "category": "development",
+      "tags": [
+        "recommendations",
+        "remediation",
+        "planning",
+        "prioritisation",
+        "agents",
+        "tiers"
+      ],
+      "integrity": "sha256-8+LUe4YkZV1LiGtwssexEDh3lJQVCLHQISjQweJTJyQ="
     },
     {
       "name": "agents-md",
@@ -53,7 +68,7 @@
         "orientation",
         "conventions"
       ],
-      "integrity": "sha256-JY+3Q9OMSdWQRpX/QusIDsHXr/EceH/ekoocyTCAubA="
+      "integrity": "sha256-dw0vFI05IH95SAINM++50Zk4xkOx9fS7BaN17pHCIKA="
     },
     {
       "name": "rules-md",
@@ -61,7 +76,7 @@
       "description": "Create or update RULES.md for a project following the AI Readiness Framework. Use when a project is missing its coding rules file, when RULES.md exists but is too generic to produce consistent agent output, when the codebase has adopted new patterns that should be codified, or when an audit has flagged insufficient or contradictory rules.",
       "category": "development",
       "tags": ["rules-md", "conventions", "coding-standards", "documentation"],
-      "integrity": "sha256-di9Sjg8ztlQmtebRUhgXxxHMrP65gAbb1tSEZ80eoHc="
+      "integrity": "sha256-OndO1T+awDRxjy1UxQYs6THuGNdZKmWZ9ipVSqZroEs="
     },
     {
       "name": "architecture-md",
@@ -75,7 +90,7 @@
         "diagrams",
         "services"
       ],
-      "integrity": "sha256-FXEjVlTiiGJKGNxmjQeTRKowhzQUYGGAKZvdosNcSDQ="
+      "integrity": "sha256-R5Pt0QXUem8aYpOzzYirGjW2T2mkGko8oR+VAB9vbio="
     },
     {
       "name": "dead-code-cleanup",
@@ -89,7 +104,7 @@
         "feature-flags",
         "static-analysis"
       ],
-      "integrity": "sha256-7OI9MMI4AxrJzeFxxX+Q+JTg2p2nIR5IC5mUv12Evfc="
+      "integrity": "sha256-AeSAXT3wb/cpfHlvtWY+r1VScb95N9+toJ45lSSatPw="
     },
     {
       "name": "error-handling-audit",
@@ -103,7 +118,7 @@
         "silent-failures",
         "refactoring"
       ],
-      "integrity": "sha256-ikkICT6OqHPll/FVqjQDtjo5TdKrQD3DJK9Ndn4An9A="
+      "integrity": "sha256-8+egTJEEk1a7kKchA5FQZtHHm9o7Nyjz0G3wyb5XgAw="
     },
     {
       "name": "boundary-audit",
@@ -118,7 +133,7 @@
         "mvc",
         "clean-architecture"
       ],
-      "integrity": "sha256-dfsehrK7wGv8sl6prA5nRN2Q/pYoBERZEckoJJwRPCM="
+      "integrity": "sha256-uXy1Sadme+FsAVn3J+pT5OYubPj7UkFmRlVjJ02GDWQ="
     },
     {
       "name": "escalation-check",
@@ -126,7 +141,7 @@
       "description": "Check whether a proposed or completed change triggers any escape hatch conditions defined in the project's AGENTS.md or RULES.md. Use before committing a change, before raising a pull request, when unsure whether a change is within scope, or as a pre-commit gate in agent workflows.",
       "category": "development",
       "tags": ["escalation", "escape-hatches", "pre-commit", "gate", "safety"],
-      "integrity": "sha256-6YDhtenjMRwqGciIySS/mnfNIHsZF6rzVRRs965oCFM="
+      "integrity": "sha256-KppQ8LlCvmXyutsVc1Ci3R5fIl+twg0bqUcLz4WdEkQ="
     },
     {
       "name": "convention-check",
@@ -140,7 +155,7 @@
         "gate",
         "code-review"
       ],
-      "integrity": "sha256-CCWDoMX+KMdUoUiXl5OqNaoQLG5TRjNemD+8cQlcHpk="
+      "integrity": "sha256-OsPGsDMJ7zrObIz9ypAinQjv+Ge9/1KCXfy5P+lUY2s="
     }
   ]
 }

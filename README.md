@@ -42,13 +42,14 @@ skill.json        Package manifest for skill distribution
 
 ## Skills
 
-Ten skills are included for agents to use in other projects. Install them and invoke them by name.
+Eleven skills are included for agents to use in other projects. Install them and invoke them by name.
 
 ### Assessment
 
 | Skill | What it does |
 |---|---|
 | `ai-readiness-audit` | Audits a project against the full tier checklist and produces a prioritised gap report |
+| `ai-readiness-recommendations` | Turns a gap report into a consultant-style remediation report — executive summary, current-state diagnosis, themed strategic recommendations, phased roadmap, risks, and item-by-item appendix |
 | `ai-readiness-scaffold` | Generates `AGENTS.md`, `RULES.md`, and `ARCHITECTURE.md` from codebase discovery |
 
 ### Document authoring
@@ -84,7 +85,7 @@ Run `ai-readiness-scaffold` to generate the required files from what can be disc
 
 ### Assessing an existing project
 
-Run `ai-readiness-audit` to get a gap report showing which tier the project currently satisfies and what is missing. Work through the gaps tier by tier, starting at Tier 0.
+Run `ai-readiness-audit` to get a gap report showing which tier the project currently satisfies and what is missing. Then run `ai-readiness-recommendations` against the gap report to produce a consultant-style remediation report — executive summary, themed recommendations, phased roadmap, and risks — suitable for sharing with engineering leads or steering groups. Work through the roadmap phase by phase, re-auditing at each milestone.
 
 ### Reaching a specific tier
 
