@@ -1,7 +1,7 @@
 {
   "$schema": "https://skill.json.org/schema/1.0.0/skill.schema.json",
   "name": "ai-readiness-framework",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Skills for implementing the AI Readiness Framework in any project — audit, scaffold, document, and enforce the conventions that make codebases safe for AI agent work.",
   "license": "MIT",
   "repository": {
